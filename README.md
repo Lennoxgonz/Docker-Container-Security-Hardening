@@ -63,21 +63,28 @@ Attackers can pass in a parameter which will succesfully run then ping command. 
 * This command will return the source code of the application
 `http://localhost:5000/api/lookup?host=localhost%3Bcat%20app.py`
 
-* This command will return the username that the web server process is using inside the container, this reveals vulnerability #3
+* This command will return the username that the web server process is using inside the container, this reveals vulnerability #4
 `http://localhost:5000/api/lookup?host=localhost%3B%20whoami`
 
 * This command will return all ENV variables
 `http://localhost:5000/api/lookup?host=localhost%3Benv`
 
-#### Vulnerability #2 - Vulnerable Python Image ####
+#### Vulnerability #2 - Vulnerable and Floating Python Image ####
 
 **Vulnerable code**
 
-`FROM python:3.7-slim`
+`FROM python:3.7`
 
-This Python image has known vulnerabilities
+This Python image is based on a version of Python that has reached end of life and has known vulnerabilities. These vulnerabilities can be found with a tool like Trivy or directly on the Docker Hub website.
+
+In addition it is a floating tag, this means it is not pinned to one specific image of Python. Instead it points to the latest version published by the image maintainer. This is problematic as introduces unpredictable bugs, changes, and security vulnerabilities as the image may change with subsequent rebuilds.
 
 **Hardened code**
+
+`FROM python:3.13.5-slim-bookworm`
+
+This Python image is up to date and has no know vulnerabilties. It is also very specific, or pinned, this ensures that the image stays exactly the same on subsequent rebuild to ensure no unexpected issues are introduced by using a slightly different imager version.
+
 **Excecuting exploit**
 
 

@@ -1,5 +1,9 @@
-# Vulnerability #2 - Using an image with known vulerabilities
-FROM python:3.7-slim
+# Vulnerability #2 - Using an floating image tag with known vulerabilities
+# FROM python:3.7
+
+# This is an updated version with no known vulnerabilities, it is also pinned 
+# to ensure the image stays exactly the same on subsequent rebuilds
+FROM python:3.13.5-slim-bookworm
 WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
