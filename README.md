@@ -26,7 +26,7 @@ To execute exploits, read explanations of why they are dangerous, and see their 
 
 ### Flask app
 
-1. Command Injection Exploit
+#### Vulnerability #1 - Command Injection Exploit ####
 
 **Vulnerable code**
 
@@ -69,7 +69,7 @@ Attackers can pass in a parameter which will succesfully run then ping command. 
 * This command will return all ENV variables
 `http://localhost:5000/api/lookup?host=localhost%3Benv`
 
-2. Vulnerable Python Image
+#### Vulnerability #2 - Vulnerable Python Image ####
 
 **Vulnerable code**
 
