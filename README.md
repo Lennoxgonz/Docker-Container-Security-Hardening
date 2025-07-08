@@ -10,7 +10,7 @@
 
 * Building and running vulnerable version
 
-`cd ./app-you-want-to-build/vulnerable`
+`cd ./app-you-want-to-build/vulnerable`  
 `docker build -t vulnerable-app .`   
 `docker run -d -p 5000:5000 --name vulnerable-conainer vulnerable-app`
 
@@ -18,8 +18,8 @@ To execute exploits, read explanations of why they are dangerous, and see their 
 
 * Building and running hardened version with vulnerability fixes 
 
-`cd ./app-you-want-to-build/hardened`
-`docker build -t hardened-app .`   
+`cd ./app-you-want-to-build/hardened`  
+`docker build -t hardened-app .`    
 `docker run -d -p 5000:5000 --name hardened-container hardened-app`
 
 ## Vulnerabilities per app
@@ -39,7 +39,9 @@ try:
     )
 ```
 
-The ping function is commonly used in code to check if a server of device on a network is reachable and responsive. The vulnerability comes from the fact that this code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as `ping -c 1 localhost; ls`
+The ping function is commonly used in code to check if a server of device on a network is reachable and responsive. The vulnerability comes from the fact that this code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as
+`ping -c 1 localhost; ls`
+
 
 **Hardened code**
 
@@ -56,6 +58,7 @@ command_list = ['ping', '-c', '1', host]
 
 This code is hardened by the removal of the shell=True parameter. This makes it so characters like ; are not interperted, which removes the ability of attackers to inject commands. Since the shell is not being used the command must be split up into a list
 
+
 **Exploiting Vulnerability**
 
 Attackers can pass in a parameter which will run then ping command. Then add a special character like ;(encoded as %3B) followed by a malicious command, this will allow attackers to run commands directly on the containers shell
@@ -68,6 +71,7 @@ Attackers can pass in a parameter which will run then ping command. Then add a s
 
 * This will return all ENV variables
 `curl http://localhost:5000/api/ping?host=localhost%3Benv`
+
 
 #### Vulnerability #2 - Out of Date and Floating Python Image ####
 
