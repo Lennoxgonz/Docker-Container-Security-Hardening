@@ -81,9 +81,11 @@ Attackers can pass in a parameter which will run then ping command. Then add a s
 * This will return all ENV variables
 `curl http://localhost:5000/api/ping?host=localhost%3Benv`
 
----
+<br>
 
 #### Vulnerability #2 - Out of Date and Floating Python Image ####
+
+---
 
 **Vulnerable Code**
 
