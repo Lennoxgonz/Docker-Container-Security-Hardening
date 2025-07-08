@@ -12,8 +12,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 COPY . .
 
-# Vulnerability #3 - Hardcoding sensitive info such as an API key as an environment variable
-ENV API_KEY="secretkey"
+# Vulnerability #3 - Hardcoding secrets/sensitive info such as an API key as an
+# environment variable directly in a project file
+
+# ENV API_KEY="secretkey"
 
 EXPOSE 5000
 
