@@ -9,7 +9,7 @@ def index():
     return "This is a vulnerable app"
 
 
-@app.route("/api/lookup")
+@app.route("/api/ping")
 def lookup():
     host = request.args.get("host", "")
 

@@ -1,7 +1,10 @@
-FROM python:3.7
+FROM python:3.7-slim
 WORKDIR /app
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && \
+    apt-get install -y iputils-ping && \
+    pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /var/lib/apt/lists/*
 COPY . .
 
 # Vulnerability #3 - Hardcoding sensitive info such as an API key as an environment variable

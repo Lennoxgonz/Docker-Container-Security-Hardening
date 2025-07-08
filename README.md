@@ -39,7 +39,7 @@ try:
     )
 ```
 
-This code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as `ping -c 1 localhost; ls`
+The ping function is commonly used in code to check if a server of device on a network is reachable and responsive. The vulnerability comes from the fact that this code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as `ping -c 1 localhost; ls`
 
 **Hardened code**
 
@@ -56,37 +56,49 @@ command_list = ['ping', '-c', '1', host]
 
 This code is hardened by the removal of the shell=True parameter. This makes it so characters like ; are not interperted, which removes the ability of attackers to inject commands. Since the shell is not being used the command must be split up into a list
 
-**Excecuting exploit**
+**Exploiting Vulnerability**
 
-Attackers can pass in a parameter which will succesfully run then ping command. Then add a special character like ;(encoded as %3B) followed by a malicious command, this will allow attackers to run commands directly on the containers shell
+Attackers can pass in a parameter which will run then ping command. Then add a special character like ;(encoded as %3B) followed by a malicious command, this will allow attackers to run commands directly on the containers shell
 
-* This command will return the source code of the application
-`http://localhost:5000/api/lookup?host=localhost%3Bcat%20app.py`
+* This will return the source code of the application
+`curl http://localhost:5000/api/ping?host=localhost%3Bcat%20app.py`
 
-* This command will return the username that the web server process is using inside the container, this reveals vulnerability #4
-`http://localhost:5000/api/lookup?host=localhost%3B%20whoami`
+* This will return the username that the web server process is using inside the container, this reveals vulnerability #4
+`curl http://localhost:5000/api/ping?host=localhost%3B%20whoami`
 
-* This command will return all ENV variables
-`http://localhost:5000/api/lookup?host=localhost%3Benv`
+* This will return all ENV variables
+`curl http://localhost:5000/api/ping?host=localhost%3Benv`
 
-#### Vulnerability #2 - Vulnerable and Floating Python Image ####
+#### Vulnerability #2 - Out of Date and Floating Python Image ####
 
-**Vulnerable code**
+**Vulnerable Code**
 
-`FROM python:3.7`
+`FROM python:3.7-slim`
 
-This Python image is based on a version of Python that has reached end of life and has known vulnerabilities. These vulnerabilities can be found with a tool like Trivy or directly on the Docker Hub website.
+This Python image is based on a version of Python that has reached end of life and has many known vulnerabilities/CVEs. These can be found with a tool like Trivy or directly on the [Docker Hub](https://hub.docker.com/layers/library/python/3.7-slim/images/sha256-071f13f6042c9163a1a16339d9306278568b72427aced66370a638a10309fab6) website.
 
 In addition it is a floating tag, this means it is not pinned to one specific image of Python. Instead it points to the latest version published by the image maintainer. This is problematic as introduces unpredictable bugs, changes, and security vulnerabilities as the image may change with subsequent rebuilds.
 
-**Hardened code**
+**Hardened Code**
 
 `FROM python:3.13.5-slim-bookworm`
 
-This Python image is up to date and has no know vulnerabilties. It is also very specific, or pinned, this ensures that the image stays exactly the same on subsequent rebuild to ensure no unexpected issues are introduced by using a slightly different imager version.
+This Python image is up to date and has no know vulnerabilties. It is also very specific, or pinned, this ensures that the image stays exactly the same on subsequent rebuilds to ensure no unexpected issues are introduced by using a slightly different image version.
 
-**Excecuting exploit**
+**Exploiting Vulnerability**
 
+The Python image used in the vulnerable app has many vulnerabilities/CVEs, these can be found on [Docker Hub](https://hub.docker.com/layers/library/python/3.7-slim/images/sha256-071f13f6042c9163a1a16339d9306278568b72427aced66370a638a10309fab6) and other websites or using tools like Trivy.
+
+Some of the most severe include
+
+[CVE-2024-45491](https://scout.docker.com/vulnerabilities/id/CVE-2024-45491?s=debian&n=expat&ns=debian&t=deb&osn=debian&osv=12&vr=%3C2.5.0-1%2Bdeb12u1&utm_source=hub&utm_medium=ExternalLink&_gl=1*12l1hnd*_ga*NTk0NzY2OTM3LjE3NTE5ODg0NjM.*_ga_XJWPQMJYHQ*czE3NTE5ODg0NjMkbzEkZzEkdDE3NTE5OTI3NDckajIzJGwwJGgw)
+"An issue was discovered in libexpat before 2.6.3. dtdCopy in xmlparse.c can have an integer overflow for nDefaultAtts on 32-bit platforms (where UINT_MAX equals SIZE_MAX)."
+
+[CVE-2022-40897](https://scout.docker.com/vulnerabilities/id/CVE-2022-40897?s=github&n=setuptools&t=pypi&vr=%3C65.5.1&utm_source=hub&utm_medium=ExternalLink&_gl=1*11u21ic*_ga*NTk0NzY2OTM3LjE3NTE5ODg0NjM.*_ga_XJWPQMJYHQ*czE3NTE5ODg0NjMkbzEkZzEkdDE3NTE5OTI3ODMkajYwJGwwJGgw)
+"Python Packaging Authority (PyPA)'s setuptools is a library designed to facilitate packaging Python projects. Setuptools version 65.5.0 and earlier could allow remote attackers to cause a denial of service by fetching malicious HTML from a PyPI package or custom PackageIndex page due to a vulnerable Regular Expression in package_index. This has been patched in version 65.5.1."
+
+[CVE-2023-4911](https://scout.docker.com/vulnerabilities/id/CVE-2023-4911?s=debian&n=glibc&ns=debian&t=deb&osn=debian&osv=12&vr=%3C2.36-9%2Bdeb12u3&utm_source=hub&utm_medium=ExternalLink&_gl=1*tipgt7*_ga*NTk0NzY2OTM3LjE3NTE5ODg0NjM.*_ga_XJWPQMJYHQ*czE3NTE5ODg0NjMkbzEkZzEkdDE3NTE5OTI4NjgkajU0JGwwJGgw)
+"A buffer overflow was discovered in the GNU C Library's dynamic loader ld.so while processing the GLIBC_TUNABLES environment variable. This issue could allow a local attacker to use maliciously crafted GLIBC_TUNABLES environment variables when launching binaries with SUID permission to execute code with elevated privileges."
 
 
 

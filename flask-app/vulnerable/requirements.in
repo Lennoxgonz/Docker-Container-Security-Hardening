@@ -1,4 +1,4 @@
 Flask
 
-# Command to create requirments.txt for Python version in Dockerfile
-# docker run --rm -v ${PWD}:/app python:3.7-slim sh -c "pip install -r /app/requirements.in && pip freeze > /app/requirements.txt
+# Command to create requirments.txt for Python image in Dockerfile
+# docker run --rm -v ${PWD}:/app python:3.7-slim sh -c "pip install -r /app/requirements.in && pip freeze > /app/requirements.txt"
