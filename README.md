@@ -10,21 +10,29 @@
 
 * Building and running vulnerable version
 
-`cd ./app-you-want-to-build/vulnerable`  
-`docker build -t vulnerable-app .`   
-`docker run -d -p 5000:5000 --name vulnerable-conainer vulnerable-app`
+`cd ./app-you-want-to-build/vulnerable`
 
-To execute exploits, read explanations of why they are dangerous, and see their solutions, check the section of the specific app which you have built and ran
+`docker build -t vulnerable-app .`
+
+`docker run -d -p 5000:5000 --name vulnerable-conainer vulnerable-app`
 
 * Building and running hardened version with vulnerability fixes 
 
-`cd ./app-you-want-to-build/hardened`  
-`docker build -t hardened-app .`    
+`cd ./app-you-want-to-build/hardened`
+
+`docker build -t hardened-app .`
+
 `docker run -d -p 5000:5000 --name hardened-container hardened-app`
 
-## Vulnerabilities per app
+To execute exploits, read explanations of why they are dangerous, and see their solutions, check the section of the specific app which you have built and ran
 
-### Flask app
+---
+
+## Vulnerabilities Per App
+
+---
+
+### Flask App
 
 #### Vulnerability #1 - Command Injection Exploit ####
 
@@ -72,6 +80,7 @@ Attackers can pass in a parameter which will run then ping command. Then add a s
 * This will return all ENV variables
 `curl http://localhost:5000/api/ping?host=localhost%3Benv`
 
+---
 
 #### Vulnerability #2 - Out of Date and Floating Python Image ####
 
