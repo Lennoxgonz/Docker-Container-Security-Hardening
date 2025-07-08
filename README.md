@@ -32,14 +32,14 @@ To execute exploits, read explanations of why they are dangerous, and see their 
 ## Vulnerabilities Per App
 
 <br>
-<br>
 
 ### Flask App
 
 <br>
-<br>
 
 #### Vulnerability #1 - Command Injection Exploit ####
+
+<br>
 
 **Vulnerable code**
 
