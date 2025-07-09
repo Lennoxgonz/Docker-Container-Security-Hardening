@@ -1,4 +1,5 @@
 import subprocess
+import shlex
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -14,9 +15,8 @@ def lookup():
     host = request.args.get("host", "")
 
     '''
-    # Vulnerability #1 - directly using user input in a shell command this allows for 
-    # attackers to string together commands using character like ||, &&, ;, and more
-    # Ex: "ping -c 1 localhost; ls"
+    # Vulnerability #1 - Command Injection 
+    # The original vulnerable code was:
 
     cmd = f"ping -c 1 {host}"
 
@@ -25,9 +25,11 @@ def lookup():
             cmd, shell=True, capture_output=True, text=True, timeout=5
         )
     '''
-
-    # The command is now a list of arguments since it will not be run in shell
-    command_list = ['ping', '-c', '1', host]
+    
+    # The input is passed into shlex.quote() which will escape special characters as a best practice
+    # In addition the command is now a list of arguments since it will not be run in shell
+    safe_host = shlex.quote(host)
+    command_list = ['ping', '-c', '1', safe_host]
 
     try:
         # The command list is passed in, and 'shell=True' is removed
@@ -47,4 +49,4 @@ def lookup():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0")
+    app.run(debug=False, host="0.0.0.0")

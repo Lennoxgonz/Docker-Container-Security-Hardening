@@ -11,5 +11,4 @@ ENV API_KEY="secretkey"
 
 EXPOSE 5000
 
-# Vulnerability #4 The default user is root and has not been changed
 CMD ["python", "app.py"]

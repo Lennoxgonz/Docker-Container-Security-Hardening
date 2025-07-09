@@ -12,7 +12,7 @@
 
 `docker build -t vulnerable-app .`
 
-`docker run -d -p 5000:5000 --name vulnerable-conainer vulnerable-app`
+`docker run -d -p 5000:5000 --name vulnerable-container vulnerable-app`
 
 * Building and running hardened version with vulnerability fixes.
 
@@ -31,7 +31,7 @@ To execute exploits, read explanations of why they are dangerous, and see their 
 
 ### Flask App
 
-#### Vulnerability #1 - Command Injection Exploit
+#### Vulnerability #1 - Command Injection 
 
 ---
 
@@ -46,28 +46,38 @@ try:
     )
 ```
 
-The ping function is commonly used in code to check if a server of device on a network is reachable and responsive. The vulnerability comes from the fact that this code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as `ping -c 1 localhost; ls`.
+The ping function is commonly used in code to check if a server of device on a network is reachable and responsive. The vulnerability comes from the fact that this code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as ||, &&, ;, and more. 
+Ex: `ping -c 1 localhost; ls`
 
 
 **Hardened code**
 
 ```
-command_list = ['ping', '-c', '1', host]
+safe_host = shlex.quote(host)
+command_list = ['ping', '-c', '1', safe_host]
 
     try:
-        # The command is passed as a list, and 'shell=True' is REMOVE
+        # The command is passed as a list, and 'shell=True' is removed
 
         result = subprocess.run(
             command_list, capture_output=True, text=True, timeout=10
         )
 ```
 
-This code is hardened by the removal of the shell=True parameter. This makes it so characters like ; are not interperted, which removes the ability of attackers to inject commands. Since the shell is not being used the command must be split up into a list.
+This code is hardened by the removal of the shell=True parameter. This makes it so characters like ; are not interpreted, which removes the ability of attackers to inject commands. Since the shell is not being used the command must be split up into a list.
+
+In addition the user input is passed into shlex.quote() which will escape special characters/instructions like -f by wrapping the input in quotes.
+
+In a production level app where many commands may have to be run a command whitelist may also be used. 
+```
+if command_to_run not in ALLOWED_COMMANDS:
+        return jsonify(error="Command not permitted"), 403
+```
 
 
 **Exploiting Vulnerability**
 
-Attackers can pass in a parameter which will run then ping command. Then add a special character like ;(encoded as %3B) followed by a malicious command, this will allow attackers to run commands directly on the containers shell.
+Attackers can pass in a parameter which will run then ping command. Then add a special character like ;(encoded as %3B) followed by a malicious command, this will allow attackers to run commands directly on the container's shell.
 
 * This will return the source code of the application.
 `curl http://localhost:5000/api/ping?host=localhost%3Bcat%20app.py`
@@ -96,7 +106,7 @@ In addition it is a floating tag, this means it is not pinned to one specific im
 
 `FROM python:3.13.5-slim-bookworm`
 
-This Python image is up to date and has no know vulnerabilties. It is also very specific, or pinned, this ensures that the image stays exactly the same on subsequent rebuilds to ensure no unexpected issues are introduced by using a slightly different image version.
+This Python image is up to date and has no known vulnerabilities. It is also very specific, or pinned, this ensures that the image stays exactly the same on subsequent rebuilds to ensure no unexpected issues are introduced by using a slightly different image version.
 
 **Exploiting Vulnerability**
 
@@ -115,7 +125,7 @@ Just a few of the most severe CVEs include
 
 <br>
 
-#### Vulnerability #3 - Storing Secret Directly in Dockerfile
+#### Vulnerability #3 - Secret Stored Directly in Dockerfile
 
 ---
 
@@ -123,29 +133,79 @@ Just a few of the most severe CVEs include
 
 `ENV API_KEY="secretkey"`
 
-Storing secrets/sensitive information such as API keys directly as an enviornment varaible in a Dockerfile or any project file is a major security risk. Doing so will leak the key into the project's version control allowing anyone with access to the repository to access the secret. Furthermore, commands like `docker history` and `docker inspect` can be used on the image to access the secret. Lastly, storing secrets like this makes changing them in the future less efficient since you would need to completley rebuild and redeploy the container.
+Storing secrets/sensitive information such as API keys directly as an environment varaible in a Dockerfile or any project file is a major security risk. Doing so will leak the key into the project's version control allowing anyone with access to the repository to access the secret. Furthermore, commands like `docker history` and `docker inspect` can be used on the image to access the secret. Lastly, storing secrets like this makes changing them in the future less efficient since you would need to completely rebuild and redeploy the container.
 
 **Hardened code**
 
 This vulnerability can be remedied in a variety of way. The simplest is to pass in the secret as a runtime enviornment variable at runtime. This makes it so that the secret only exists for the life of the container and is not stored in the image.
 
-`docker run -e API_KEY='secretkey' hardended-app`
+`docker run -e API_KEY='secretkey' hardened-app`
 
-Another option is to use a local .env file to hold secrets. As long as .env is included in your .gitignore it will never be push to the repository. This option works for local development but is limited when working in a shared enviornment or pushing to production.
+Another option is to use a local .env file to hold secrets. As long as .env is included in your .gitignore it will never be pushed to the repository. This option works for local development but is limited when working in a shared environment or pushing to production.
 
 `docker run --env-file ./.env -d -p 5000:5000 --name hardened-container hardened-app`
 
 A more flexible and secure option is to use a secret manager like AWS, Azure, or Google Cloud secret manager. The secret is stored in the secret manager, then encrypted and never again seen as plain text. You can then use an SDK from the secret manager provider to access the secret through an API call and use it in the application.
 
-example here
+```
+from google.cloud import secretmanager
+
+client = secretmanager.SecretManagerServiceClient()
+name = "projects/hardened-app/secrets/API-key/versions/latest"
+response = client.access_secret_version(name=name)
+my_secret = response.payload.data.decode("UTF-8")
+```
 
 **Exploiting Vulnerability**
 
+If a secret is stored directly in a project file, anyone with access to that file or the repository where it is stored can access that secret. In addition the commands `docker history` and `docker inspect` can be used to access a secret which has been stored in an insecure manner. If an attacker gains shell access to a container they can use the command `printenv` to access all environment variables.
 
+<br>
 
+#### Vulnerability #4 - Running Container as Root User
 
+---
 
+**Vulnerable code**
 
+```
+FROM python:3.7-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN apt-get update && \
+    apt-get install -y iputils-ping && \
+    pip install --no-cache-dir -r requirements.txt && \
+    rm -rf /var/lib/apt/lists/*
+COPY . .
+
+ENV API_KEY="secretkey"
+
+EXPOSE 5000
+
+CMD ["python", "app.py"]
+```
+
+When creating Docker containers, by default the user is set to the root user. This is a significant security risk as if an attacker were to gain control over a process running in the container they would gain superuser privileges. For this reason a new less privileged user should always be created and used.
+
+**Hardened code**
+
+```
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+RUN chown -R appuser:appuser /app
+USER appuser
+```
+
+This code adds a new user and gives it ownership over the /app so it can be used instead of the root user.
+
+**Exploiting Vulnerability**
+
+For an attacker to take advantage of this vulnerability they would first have to find an entry point through another vulnerability in the application. This could be anything that allows for remote code exectution. Something like vulnerability #1 would be an easy entry point for an attacker to start running commands on the container's shell. As a superuser they would have much more freedom as to how they could go about their attacks.
+
+Once attackers have access to the container's shell as root user they can run commands like apt-get. This can be used to download network scanners like nmap, password crackers like hashcat, packet sniffers like tcpdump, or any other tools attackers may find useful in thier attack. 
+
+Attackers would also gain full access to read and overwrite application source code. This would allow attackers to add more vulnerabilities or backdoors into the application.
+
+As root user the attacker would also be well position to try to take advantage of a kernel level exploit or another misconfiguration in the Docker container to attempt a container escape. If successful the attacker would have access to the host machine and all containers running on that machine.
 
 
 #### Vulnerability # - 
