@@ -14,7 +14,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Vulnerability #4 - Running as the default root user
-# Part 1: Create a dedicated non-root user and group
+# Part 1/2: Create a dedicated non-root user and group
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
 # Copy and install dependencies
@@ -29,7 +29,7 @@ COPY . .
 # ENV API_KEY="secretkey"
 
 # Vulnerability #4 - Running Container as Root User
-# Part 2: Change ownership of files and switch to the non-root user
+# Part 2/2: Change ownership of files and switch to the non-root user
 RUN chown -R appuser:appuser /app
 USER appuser
 
