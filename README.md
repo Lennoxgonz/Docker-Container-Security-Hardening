@@ -47,6 +47,7 @@ try:
 ```
 
 The ping function is commonly used in code to check if a server of device on a network is reachable and responsive. The vulnerability comes from the fact that this code is directly using user input in a shell command, this leaves the endpoint vulnerable to command injection by stringing together commands with special characters such as ||, &&, ;, and more. 
+
 Ex: `ping -c 1 localhost; ls`
 
 
