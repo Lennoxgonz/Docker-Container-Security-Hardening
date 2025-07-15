@@ -1,0 +1,57 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '5173:5173'
+    volumes:
+    # Mounts source code into the container
+    - ./frontend:/usr/src/app
+    # Prevents node_modules from overwriting the one in the container
+    - /usr/src/app/node_modules      
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+    # Mounts source code into the container
+    - ./backend:/usr/src/app
+    # Prevents node_modules from overwriting the one in the container
+    - /usr/src/app/node_modules
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/mydatabase
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  db:
+    image: postgres:17.5-bookworm
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+# Defines the network that allows the containers to communicate with each other.
+# Services can reach each other using their service names as hostnames (e.g., 'db', 'backend').
+networks:
+  app-network:
+    driver: bridge
+    
+# Defines the named volume used by the db service for data persistence.
+volumes:
+  postgres-data:
