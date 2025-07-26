@@ -1,32 +1,39 @@
 import { useState } from "react";
-import type { Credentials } from "../types/credentials";
+import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../services/api";
-import { Link } from "react-router-dom";
+import type { Credentials } from "../types/credentials";
 
 function SignInPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError("");
 
     const credentials: Credentials = { username, password };
 
     try {
       const response = await signIn(credentials);
+      localStorage.setItem("token", response.token);
       console.log("Sign In successful:", response);
-      alert("Sign In successful!");
-    } catch (error) {
-      console.error("Sign In failed:", error);
-      alert("Sign In failed. Please try again.");
+      navigate("/main");
+    } catch (err: any) {
+      console.error("Sign In failed:", err);
+      setError(
+        err.response?.data?.message || "Sign In failed. Please try again."
+      );
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="p-8 bg-white rounded-lg shadow-md ">
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-gray-100">
+      <div className="p-8 bg-white rounded-lg shadow-md w-full max-w-sm">
         <h2 className="text-2xl font-bold text-center mb-6">Sign In</h2>
         <form onSubmit={handleSubmit}>
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
           <div className="mb-4">
             <label htmlFor="username">Username</label>
             <input

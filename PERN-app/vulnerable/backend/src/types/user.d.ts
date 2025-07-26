@@ -1,4 +1,5 @@
 export interface User {
+  id?: number;
   username: string;
-  password: string; // In a real app, this would be a hashed password
+  password: string;
 }

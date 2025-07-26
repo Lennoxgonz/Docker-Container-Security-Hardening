@@ -31,6 +31,8 @@ To execute exploits, read explanations of why they are dangerous, and see their 
 
 ### Flask App
 
+This will be a sample web application built in Python with the Flask framework.
+
 #### Vulnerability #1 - Command Injection 
 
 ---
@@ -213,7 +215,9 @@ As root user the attacker would also be well positioned to try to take advantage
 
 <br>
 
-### App Name
+### PERN App
+
+This will be a sample web application using Express.js with a PostgeSQL database for the backend and React for the frontend.
 
 #### Vulnerability # - 
 

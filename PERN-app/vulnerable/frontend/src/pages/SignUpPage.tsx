@@ -6,29 +6,42 @@ import { Link, useNavigate } from "react-router-dom";
 function SignUpPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    setError("");
+    setSuccess("");
 
     const credentials: Credentials = { username, password };
 
     try {
       const response = await signUp(credentials);
       console.log("Sign up successful:", response);
-      alert("Sign Up successful!");
-      navigate("/signin")
-    } catch (error) {
-      console.error("Sign Up failed:", error);
-      alert("Sign Up failed. Please try again.");
+      setSuccess(response.message + " Redirecting to sign in...");
+
+      setTimeout(() => {
+        navigate("/signin");
+      }, 2000);
+    } catch (err: any) {
+      console.error("Sign Up failed:", err);
+      setError(
+        err.response?.data?.message || "Sign Up failed. Please try again."
+      );
     }
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100">
-      <div className="p-8 bg-white rounded-lg shadow-md ">
+    <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-gray-100">
+      <div className="p-8 bg-white rounded-lg shadow-md w-full max-w-sm">
         <h2 className="text-2xl font-bold text-center mb-6">Sign Up</h2>
         <form onSubmit={handleSubmit}>
+          {error && <p className="text-red-500 text-center mb-4">{error}</p>}
+          {success && (
+            <p className="text-green-500 text-center mb-4">{success}</p>
+          )}
           <div className="mb-4">
             <label htmlFor="username">Username</label>
             <input

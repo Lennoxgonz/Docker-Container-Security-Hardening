@@ -1,14 +1,24 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-// import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { query } from "./db";
 import * as userService from "./userService";
-import { User } from "./types/user";
+
+const JWT_SECRET = "this-is-a-super-secret-key-that-should-be-in-an-env-file";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: { id: number; username: string };
+    }
+  }
+}
 
 const app = express();
 
 const allowedOrigins = [
   "https://5173-lennoxgonz-dockercontai-fsrei4975c5.ws-us120.gitpod.io",
+  "http://localhost:5173",
 ];
 
 const corsOptions = {
@@ -27,11 +37,6 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Test
-app.get("/", (req: Request, res: Response) => {
-  res.status(200).send("Running");
-});
-
 app.post("/signup", async (req: Request, res: Response) => {
   try {
     await userService.createUser(req.body);
@@ -44,19 +49,11 @@ app.post("/signup", async (req: Request, res: Response) => {
 
 app.post("/signin", async (req: Request, res: Response) => {
   try {
-    // Vulnerability #1 - Insecure password hashing function
     const user = await userService.findUser(req.body);
-
-    /* Hardened Version
-    const { username, password } = req.body;
-    const user = await userService.findUserByUsername(username); // You would need to uncomment this function in the service file
-    if (user && (await bcrypt.compare(password, user.password))) {
-      // Passwords match, sign in is successful
-    }
-    */
-
     if (user) {
-      res.status(200).json({ message: "Sign in successful (insecure)" });
+      const payload = { id: user.id, username: user.username };
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      res.status(200).json({ message: "Sign in successful", token: token });
     } else {
       res.status(401).json({ message: "Invalid credentials" });
     }
@@ -64,6 +61,30 @@ app.post("/signin", async (req: Request, res: Response) => {
     console.error("Signin Error:", error);
     res.status(500).json({ message: "Internal server error" });
   }
+});
+
+const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+
+  if (token == null) {
+    return res.status(401).json({ message: "Authentication token required" });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+app.get("/main", authenticateToken, (req: Request, res: Response) => {
+  res.json({
+    message: `Welcome to the main protected page, ${req.user?.username}!`,
+    user: req.user,
+  });
 });
 
 const startServer = async () => {
@@ -77,9 +98,8 @@ const startServer = async () => {
     `;
     await query(createTableQuery);
     console.log("Table 'users' is verified or created.");
-
     app.listen(3000, () => {
-      console.log(`Server running on http://localhost:3000`);
+      console.log(`Server running`);
     });
   } catch (error) {
     console.error("Failed to start server:", error);
