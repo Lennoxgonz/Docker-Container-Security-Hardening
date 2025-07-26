@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getMainPageData } from "../services/api";
+import Search from "../components/Search";
 
 type ApiData = {
   message: string;
+  user: {
+    id: number;
+    username: string;
+  };
 };
 
 function MainPage() {
@@ -12,30 +17,39 @@ function MainPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    getMainPageData()
-      .then((response) => {
+    const fetchData = async () => {
+      try {
+        const response = await getMainPageData();
         setData(response);
-      })
-      .catch((err) => {
+      } catch (err) {
         console.error("Failed to fetch main page data:", err);
         setError("Your session may be invalid. Please sign in again.");
-        localStorage.removeItem("token"); // Clear bad token
+        localStorage.removeItem("token");
         setTimeout(() => navigate("/signin"), 2000);
-      });
+      }
+    };
+
+    fetchData();
   }, [navigate]);
 
   return (
-    <div className="flex justify-center items-center min-h-[calc(100vh-64px)] bg-gray-100">
-      <div className="p-10 bg-white rounded-lg shadow-xl text-center w-full max-w-md">
-        <h1 className="text-3xl font-bold mb-4">🛡️ Protected Area 🛡️</h1>
+    <div className="flex justify-center py-16 bg-gray-50">
+      <div className="p-8 bg-white rounded-md shadow-sm text-center max-w-2xl">
+        <h1 className="text-2xl font-semibold mb-4">Main Page</h1>
+
         {error ? (
-          <p className="text-red-500">{error}</p>
+          <p className="text-red-600">{error}</p>
         ) : data ? (
-          <div className="p-4 border-l-4 border-green-500 bg-green-50 text-left">
-            <p className="font-medium">{data.message}</p>
-          </div>
+          <>
+            <p className="text-gray-700 mb-4">
+              <strong>Welcome, {data.user.username}!</strong>
+              <br />
+            </p>
+
+            <Search />
+          </>
         ) : (
-          <p>Loading protected data...</p>
+          <p className="text-gray-500">Loading...</p>
         )}
       </div>
     </div>

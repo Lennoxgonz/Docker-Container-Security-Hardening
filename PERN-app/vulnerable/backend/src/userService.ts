@@ -1,10 +1,8 @@
 import { query } from "./db";
 import { User } from "./types/user";
-// import bcrypt from "bcrypt";
 import crypto from "crypto";
 
-//Vulnerability #1 - Insecure password hashing function
-
+//Vulnerability #1 - Insecure Password Hashing Function
 export const createUser = async (newUser: User) => {
   const { username, password } = newUser;
   const md5Hash = crypto.createHash("md5").update(password).digest("hex");
@@ -35,18 +33,39 @@ export const findUser = async (credentials: User) => {
   const user = result.rows[0];
 
   if (user && (await bcrypt.compare(password, user.password))) {
-    return user; 
+    return user;
   }
-  return null; 
+  return null;
 };
 */
 
-/* Vulnerabity #2 - SQL Injection
-
-export const searchUsersVulnerable = async (searchTerm: string) => {
+/**
+ * VULNERABILITY #2 - SQL Injection
+ * This function is intentionally vulnerable. It constructs a SQL query by
+ * directly embedding the 'searchTerm' into the query string.
+ * An attacker can provide a malicious string to alter the query's logic.
+ */
+export const searchUsers = async (searchTerm: string) => {
   const sql = `SELECT id, username FROM users WHERE username LIKE '%${searchTerm}%'`;
-  console.log("Executing VULNERABLE search query:", sql);
   const result = await query(sql);
+  return result.rows;
+};
+
+/**
+ * Hardened Version
+ * This function is hardened against SQL injection by using parameterized queries.
+ * The 'searchTerm' is passed as a separate parameter to the database driver,
+ * which safely handles its inclusion in the query.
+
+export const searchUsers = async (searchTerm: string) => {
+  // The SQL query uses a placeholder (e.g., $1) instead of the raw variable.
+  const sql = `SELECT id, username FROM users WHERE username LIKE $1`;
+
+  // The variable is passed in an array as the second argument to the query function.
+  // The database driver will safely substitute the placeholder with this value.
+  const values = [`%${searchTerm}%`];
+  
+  const result = await query(sql, values);
   return result.rows;
 };
 

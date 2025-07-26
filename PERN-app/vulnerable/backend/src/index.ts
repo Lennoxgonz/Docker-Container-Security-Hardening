@@ -1,10 +1,12 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
 import { query } from "./db";
 import * as userService from "./userService";
 
 const JWT_SECRET = "this-is-a-super-secret-key-that-should-be-in-an-env-file";
+const SALT_ROUNDS = 10;
 
 declare global {
   namespace Express {
@@ -63,9 +65,25 @@ app.post("/signin", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/search", async (req: Request, res: Response) => {
+  const searchTerm = req.query.term as string;
+
+  if (!searchTerm && searchTerm !== "") {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const users = await userService.searchUsers(searchTerm);
+    res.json(users);
+  } catch (error) {
+    console.error("Search Error:", error);
+    res.status(500).json({ message: "Error during search" });
+  }
+});
+
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // Bearer TOKEN
+  const token = authHeader && authHeader.split(" ")[1];
 
   if (token == null) {
     return res.status(401).json({ message: "Authentication token required" });
@@ -82,7 +100,6 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
 
 app.get("/main", authenticateToken, (req: Request, res: Response) => {
   res.json({
-    message: `Welcome to the main protected page, ${req.user?.username}!`,
     user: req.user,
   });
 });
@@ -98,6 +115,25 @@ const startServer = async () => {
     `;
     await query(createTableQuery);
     console.log("Table 'users' is verified or created.");
+
+    // Adding sample users for search functionality
+    console.log("Seeding sample users...");
+    const usersToSeed = [
+      { username: "alice", password: "password123" },
+      { username: "bob", password: "password123" },
+      { username: "charlie", password: "password123" },
+    ];
+
+    for (const user of usersToSeed) {
+      const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
+      const seedQuery = {
+        text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
+        values: [user.username, hashedPassword],
+      };
+      await query(seedQuery.text, seedQuery.values);
+    }
+    console.log("Sample users seeded successfully.");
+
     app.listen(3000, () => {
       console.log(`Server running`);
     });

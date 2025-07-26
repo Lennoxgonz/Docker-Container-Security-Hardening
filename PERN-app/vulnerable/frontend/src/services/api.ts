@@ -39,3 +39,12 @@ export const getMainPageData = async () => {
   const { data } = await apiClient.get("/main");
   return data;
 };
+
+export const searchUsers = async (searchTerm: string) => {
+  const { data } = await apiClient.get("/search", {
+    params: {
+      term: searchTerm,
+    },
+  });
+  return data;
+};
