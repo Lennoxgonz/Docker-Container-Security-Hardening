@@ -48,3 +48,8 @@ export const searchUsers = async (searchTerm: string) => {
   });
   return data;
 };
+
+export const getProfile = async (userId: string | number) => {
+  const { data } = await apiClient.get(`/profile/${userId}`);
+  return data;
+};

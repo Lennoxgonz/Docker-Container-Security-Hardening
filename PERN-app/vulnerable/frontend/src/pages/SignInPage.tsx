@@ -18,7 +18,8 @@ function SignInPage() {
     try {
       const response = await signIn(credentials);
       localStorage.setItem("token", response.token);
-      console.log("Sign In successful:", response);
+      localStorage.setItem("user", JSON.stringify(response.user));
+
       navigate("/main");
     } catch (err: any) {
       console.error("Sign In failed:", err);

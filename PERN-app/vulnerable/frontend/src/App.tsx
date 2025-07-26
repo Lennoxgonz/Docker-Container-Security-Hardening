@@ -5,6 +5,7 @@ import SignInPage from "./pages/SignInPage";
 import MainPage from "./pages/MainPage";
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
+import ProfilePage from "./pages/ProfilePage.tsx";
 
 function App() {
   return (
@@ -20,6 +21,15 @@ function App() {
           element={
             <ProtectedRoute>
               <MainPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/profile/:userId"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
             </ProtectedRoute>
           }
         />

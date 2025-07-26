@@ -1,6 +1,7 @@
 import { query } from "./db";
 import { User } from "./types/user";
 import crypto from "crypto";
+//import bcrypt from "bcrypt";
 
 //Vulnerability #1 - Insecure Password Hashing Function
 export const createUser = async (newUser: User) => {
@@ -55,7 +56,7 @@ export const searchUsers = async (searchTerm: string) => {
  * Hardened Version
  * This function is hardened against SQL injection by using parameterized queries.
  * The 'searchTerm' is passed as a separate parameter to the database driver,
- * which safely handles its inclusion in the query.
+ * which safely handles its inclusion in the query
 
 export const searchUsers = async (searchTerm: string) => {
   // The SQL query uses a placeholder (e.g., $1) instead of the raw variable.
@@ -70,3 +71,9 @@ export const searchUsers = async (searchTerm: string) => {
 };
 
 */
+
+export const findUserById = async (id: number) => {
+  const sql = "SELECT id, username FROM users WHERE id = $1";
+  const result = await query(sql, [id]);
+  return result.rows[0];
+};

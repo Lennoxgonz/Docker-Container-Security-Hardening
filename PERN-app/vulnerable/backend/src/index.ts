@@ -5,7 +5,8 @@ import bcrypt from "bcrypt";
 import { query } from "./db";
 import * as userService from "./userService";
 
-const JWT_SECRET = "this-is-a-super-secret-key-that-should-be-in-an-env-file";
+const JWT_SECRET =
+  "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
 const SALT_ROUNDS = 10;
 
 declare global {
@@ -55,7 +56,11 @@ app.post("/signin", async (req: Request, res: Response) => {
     if (user) {
       const payload = { id: user.id, username: user.username };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
-      res.status(200).json({ message: "Sign in successful", token: token });
+      res.status(200).json({
+        message: "Sign in successful",
+        token: token,
+        user: { id: user.id, username: user.username },
+      });
     } else {
       res.status(401).json({ message: "Invalid credentials" });
     }
@@ -103,6 +108,34 @@ app.get("/main", authenticateToken, (req: Request, res: Response) => {
     user: req.user,
   });
 });
+
+/**
+ * VULNERABILITY #3 - Broken Access Control
+ * This endpoint is vulnerable because it checks that a user is authenticated
+ * with `authenticateToken`, but it does not perform an authorization check
+ * to ensure the logged-in user is the one whose profile is being requested
+ */
+app.get(
+  "/profile/:id",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    const profileIdToView = parseInt(req.params.id!, 10);
+    // This code does not check if the logged-in user's ID `req.user.id`
+    // matches the ID from the URL `profileIdToView`
+
+    try {
+      const userProfile = await userService.findUserById(profileIdToView);
+      if (userProfile) {
+        res.json(userProfile);
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch (error) {
+      console.error("Profile access error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
 
 const startServer = async () => {
   try {

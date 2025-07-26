@@ -4,8 +4,21 @@ function Header() {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
+  let user = null;
+  const userString = localStorage.getItem("user");
+
+  if (userString && userString !== "undefined") {
+    try {
+      user = JSON.parse(userString);
+    } catch (e) {
+      console.error("Failed to parse user data from storage:", e);
+      localStorage.removeItem("user");
+    }
+  }
+
   const handleSignOut = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/signin");
   };
 
@@ -16,10 +29,16 @@ function Header() {
           <Link to="/">Vulnerable App</Link>
         </div>
         <nav className="space-x-6">
-          {token ? (
+          {token && user ? (
             <>
               <Link to="/main" className="text-gray-600 hover:text-gray-900">
                 Main Page
+              </Link>
+              <Link
+                to={`/profile/${user.id}`}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                My Profile
               </Link>
               <button
                 onClick={handleSignOut}
