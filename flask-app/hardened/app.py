@@ -14,10 +14,9 @@ def index():
 def lookup():
     host = request.args.get("host", "")
 
-    '''
     # Vulnerability #1 - Command Injection 
     # The original vulnerable code was:
-
+    '''
     cmd = f"ping -c 1 {host}"
 
     try:

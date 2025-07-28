@@ -23,7 +23,7 @@ function MainPage() {
         setData(response);
       } catch (err) {
         console.error("Failed to fetch main page data:", err);
-        setError("Your session may be invalid. Please sign in again.");
+        setError("Your session is invalid. Please sign in again.");
         localStorage.removeItem("token");
         setTimeout(() => navigate("/signin"), 2000);
       }
@@ -33,7 +33,7 @@ function MainPage() {
   }, [navigate]);
 
   return (
-    <div className="flex justify-center py-16 bg-gray-50">
+    <div className="flex justify-center h-screen py-16 bg-gray-50 mt-1">
       <div className="p-8 bg-white rounded-md shadow-sm text-center max-w-2xl">
         <h1 className="text-2xl font-semibold mb-4">Main Page</h1>
 

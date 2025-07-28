@@ -77,7 +77,6 @@ if command_to_run not in ALLOWED_COMMANDS:
         return jsonify(error="Command not permitted"), 403
 ```
 
-
 **Exploiting Vulnerability**
 
 Attackers can pass in a parameter which will run the ping command. Then add a special character like ;(encoded as %3B) followed by a malicious command. This allows attackers to run commands directly on the container's shell.
@@ -218,6 +217,96 @@ As root user the attacker would also be well positioned to try to take advantage
 ### PERN App
 
 This will be a sample web application using Express.js with a PostgeSQL database for the backend and React for the frontend.
+
+#### Vulnerability #1 - Insecure Password Hashing
+
+---
+
+**Vulnerable code**
+
+
+
+<br>
+
+**Hardened code**
+
+
+
+<br>
+
+**Exploiting Vulnerability**
+
+
+
+<br>
+
+#### Vulnerability #2 - SQL Injection 
+
+---
+
+**Vulnerable code**
+
+
+
+<br>
+
+**Hardened code**
+
+
+
+<br>
+
+**Exploiting Vulnerability**
+
+
+
+<br>
+
+#### Vulnerability #3 - Broken Access Control 
+
+---
+
+**Vulnerable code**
+
+
+
+<br>
+
+**Hardened code**
+
+
+
+<br>
+
+**Exploiting Vulnerability**
+
+
+
+<br>
+
+#### Vulnerability #4 -  
+
+---
+
+**Vulnerable code**
+
+
+
+<br>
+
+**Hardened code**
+
+
+
+<br>
+
+**Exploiting Vulnerability**
+
+
+
+<br>
+
+### App
 
 #### Vulnerability # - 
 

@@ -3,7 +3,7 @@ import { User } from "./types/user";
 import crypto from "crypto";
 //import bcrypt from "bcrypt";
 
-//Vulnerability #1 - Insecure Password Hashing Function
+// Vulnerability #1 - Insecure Password Hashing
 export const createUser = async (newUser: User) => {
   const { username, password } = newUser;
   const md5Hash = crypto.createHash("md5").update(password).digest("hex");
@@ -41,7 +41,7 @@ export const findUser = async (credentials: User) => {
 */
 
 /**
- * VULNERABILITY #2 - SQL Injection
+ * Vulnerability #2 - SQL Injection
  * This function is intentionally vulnerable. It constructs a SQL query by
  * directly embedding the 'searchTerm' into the query string.
  * An attacker can provide a malicious string to alter the query's logic.
