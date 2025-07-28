@@ -6,9 +6,7 @@ services:
     ports:
       - '5173:5173'
     volumes:
-    # Mounts source code into the container
     - ./frontend:/usr/src/app
-    # Prevents node_modules from overwriting the one in the container
     - /usr/src/app/node_modules      
     depends_on:
       - backend
@@ -22,9 +20,11 @@ services:
     ports:
       - '3000:3000'
     volumes:
-    # Mounts source code into the container
+    
+    # Vulnerability #4 - Exposed Docker Socket
+    - /var/run/docker.sock:/var/run/docker.sock
+
     - ./backend:/usr/src/app
-    # Prevents node_modules from overwriting the one in the container
     - /usr/src/app/node_modules
     environment:
       DATABASE_URL: postgres://user:password@db:5432/mydatabase
@@ -46,12 +46,9 @@ services:
     networks:
       - app-network
 
-# Defines the network that allows the containers to communicate with each other.
-# Services can reach each other using their service names as hostnames (e.g., 'db', 'backend').
 networks:
   app-network:
     driver: bridge
     
-# Defines the named volume used by the db service for data persistence.
 volumes:
   postgres-data:

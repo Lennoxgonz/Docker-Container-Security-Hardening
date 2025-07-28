@@ -110,7 +110,7 @@ app.get("/main", authenticateToken, (req: Request, res: Response) => {
 });
 
 /*
- * Vulnerability #3 - Broken Access Control
+ * Vulnerability #3 - Insecure Direct Object Reference
  * This endpoint is vulnerable because it checks that a user is authenticated
  * with `authenticateToken`, but it does not perform an authorization check
  * to ensure the logged-in user is the one whose profile is being requested

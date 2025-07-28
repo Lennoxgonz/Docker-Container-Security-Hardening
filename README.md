@@ -262,7 +262,7 @@ This will be a sample web application using Express.js with a PostgeSQL database
 
 <br>
 
-#### Vulnerability #3 - Broken Access Control 
+#### Vulnerability #3 - Insecure Direct Object Reference
 
 ---
 
@@ -284,7 +284,7 @@ This will be a sample web application using Express.js with a PostgeSQL database
 
 <br>
 
-#### Vulnerability #4 -  
+#### Vulnerability #4 - Exposed Docker Socket
 
 ---
 
