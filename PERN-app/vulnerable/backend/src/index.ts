@@ -1,9 +1,11 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import crypto from "crypto";
+//import bcrypt from "bcrypt";
 import { query } from "./db";
 import * as userService from "./userService";
+import { usersToSeed } from "./data/usersToSeed";
 
 const JWT_SECRET =
   "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
@@ -150,22 +152,21 @@ const startServer = async () => {
     console.log("Table 'users' is verified or created.");
 
     // Adding sample users for search functionality
-    console.log("Seeding sample users...");
-    const usersToSeed = [
-      { username: "alice", password: "password123" },
-      { username: "bob", password: "password123" },
-      { username: "charlie", password: "password123" },
-    ];
-
+    console.log("Adding sample users...");
+    
     for (const user of usersToSeed) {
-      const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
+      // Also using insecure MD5 hasing algorithm for sample users
+      const md5Hash = crypto
+        .createHash("md5")
+        .update(user.password)
+        .digest("hex");
       const seedQuery = {
         text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
-        values: [user.username, hashedPassword],
+        values: [user.username, md5Hash],
       };
       await query(seedQuery.text, seedQuery.values);
     }
-    console.log("Sample users seeded successfully.");
+    console.log("Sample seeded successfully.");
 
     app.listen(3000, () => {
       console.log(`Server running`);
