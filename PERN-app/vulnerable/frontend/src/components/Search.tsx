@@ -2,7 +2,6 @@ import { useState } from "react";
 import { searchUsers } from "../services/api";
 import type { UserResult } from "../types/userResult";
 
-
 function Search() {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<UserResult[]>([]);

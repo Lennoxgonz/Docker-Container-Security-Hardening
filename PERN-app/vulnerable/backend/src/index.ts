@@ -153,7 +153,7 @@ const startServer = async () => {
 
     // Adding sample users for search functionality
     console.log("Adding sample users...");
-    
+
     for (const user of usersToSeed) {
       // Also using insecure MD5 hasing algorithm for sample users
       const md5Hash = crypto
