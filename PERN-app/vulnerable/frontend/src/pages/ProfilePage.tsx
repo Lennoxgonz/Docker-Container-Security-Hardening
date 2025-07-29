@@ -15,16 +15,20 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      if (!userId) return;
+      if (!userId) {
+        setLoading(false);
+        setError("User ID is missing.");
+        return;
+      }
 
       setLoading(true);
       setError("");
-      
+
       try {
         const data = await getProfile(userId);
         setProfile(data);
       } catch (err: any) {
-        setError(err.response?.data?.message || err.message);
+        setError(err.response?.data?.message || "Failed to load profile.");
       } finally {
         setLoading(false);
       }
@@ -34,12 +38,11 @@ const ProfilePage: React.FC = () => {
   }, [userId]);
 
   return (
-    <div className="container mx-auto mt-8 p-4">
+    <div className="mx-10 mt-8 p-4">
       <div className="bg-white shadow rounded-lg p-6">
-        <h1 className="text-2xl font-bold mb-4">Your Profile</h1>
-        
-        {loading && <p>Loading profile...</p>}
+        <h1 className="text-2xl font-bold mb-4">User Profile</h1>
 
+        {loading && <p>Loading profile...</p>}
         {error && <p className="text-red-500">Error: {error}</p>}
 
         {profile && (

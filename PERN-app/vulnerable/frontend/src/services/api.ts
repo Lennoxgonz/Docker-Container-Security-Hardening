@@ -25,6 +25,21 @@ apiClient.interceptors.request.use(
   }
 );
 
+apiClient.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      console.error("Session expired. Please sign in again.");
+      localStorage.removeItem("token");
+      window.location.href = "/signin";
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 export const signUp = async (credentials: Credentials) => {
   const { data } = await apiClient.post("/signup", credentials);
   return data;
@@ -42,9 +57,7 @@ export const getMainPageData = async () => {
 
 export const searchUsers = async (searchTerm: string) => {
   const { data } = await apiClient.get("/search", {
-    params: {
-      term: searchTerm,
-    },
+    params: { term: searchTerm },
   });
   return data;
 };
