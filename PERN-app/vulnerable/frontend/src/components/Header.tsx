@@ -1,7 +1,6 @@
-import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-const Header = (): JSX.Element => {
+const Header = (): React.ReactNode => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 

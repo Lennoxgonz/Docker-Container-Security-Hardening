@@ -1,5 +1,5 @@
 import { query } from "./db";
-import { User } from "./types/user";
+import { User } from "./types/user.types";
 import crypto from "crypto";
 //import bcrypt from "bcrypt";
 

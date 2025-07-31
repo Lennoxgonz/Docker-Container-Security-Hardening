@@ -1,8 +1,8 @@
-import { useState, type JSX } from "react";
+import { useState } from "react";
 import { searchUsers } from "../services/api";
 import type { User } from "../types/user.types";
 
-const Search = (): JSX.Element => {
+const Search = (): React.ReactNode => {
   const [searchTerm, setSearchTerm] = useState("");
   const [results, setResults] = useState<User[]>([]);
   const [error, setError] = useState("");

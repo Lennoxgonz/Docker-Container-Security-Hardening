@@ -1,9 +1,9 @@
-import { useState, type JSX } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../services/api";
 import type { Credentials } from "../types/user.types";
 
-const SignInPage = (): JSX.Element => {
+const SignInPage = (): React.ReactNode => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

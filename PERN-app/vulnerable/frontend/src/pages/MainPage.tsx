@@ -1,9 +1,9 @@
-import { useEffect, useState, type JSX } from "react";
+import { useEffect, useState } from "react";
 import { getMainPageData } from "../services/api";
 import Search from "../components/Search";
 import type { ApiData } from "../types/apiData.types";
 
-const MainPage = (): JSX.Element => {
+const MainPage = (): React.ReactNode => {
   const [data, setData] = useState<ApiData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);

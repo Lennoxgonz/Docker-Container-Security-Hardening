@@ -6,9 +6,8 @@ import MainPage from "./pages/MainPage";
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
-import type { JSX } from "react";
 
-const App = (): JSX.Element => {
+const App = (): React.ReactNode => {
   return (
     <BrowserRouter>
       <Header />

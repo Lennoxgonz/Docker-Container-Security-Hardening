@@ -1,9 +1,9 @@
-import { useState, useEffect, type JSX } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getProfile } from "../services/api";
 import type { User } from "../types/user.types";
 
-const ProfilePage = (): JSX.Element => {
+const ProfilePage = (): React.ReactNode => {
   const { userId } = useParams<{ userId: string }>();
   const [profile, setProfile] = useState<User | null>(null);
   const [error, setError] = useState("");

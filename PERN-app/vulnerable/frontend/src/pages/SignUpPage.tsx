@@ -1,35 +1,78 @@
-import { useState, type JSX } from "react";
+import { useState } from "react";
 import { signUp } from "../services/api";
 import { Link, useNavigate } from "react-router-dom";
-import type { Credentials } from "../types/user.types";
+import { z } from "zod";
 
-const SignUpPage = (): JSX.Element => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+const signUpSchema = z
+  .object({
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters long")
+      .regex(
+        /^[a-zA-Z0-9_]+$/,
+        "Username can only contain letters, numbers, and underscores"
+      ),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters long"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type SignUpFormFields = z.infer<typeof signUpSchema>;
+
+const SignUpPage = (): React.ReactNode => {
+  const [formData, setFormData] = useState<SignUpFormFields>({
+    username: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [errors, setErrors] = useState<{
+    username?: string;
+    password?: string;
+    confirmPassword?: string;
+    api?: string;
+  }>({});
   const [success, setSuccess] = useState("");
   const navigate = useNavigate();
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({ ...prev, [id]: value }));
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError("");
+    setErrors({});
     setSuccess("");
 
-    const credentials: Credentials = { username, password };
+    const validationResult = signUpSchema.safeParse(formData);
+
+    if (!validationResult.success) {
+      const fieldErrors = Object.fromEntries(
+        validationResult.error.issues.map((issue) => [
+          issue.path[0],
+          issue.message,
+        ])
+      );
+      setErrors(fieldErrors);
+      return;
+    }
 
     try {
-      const response = await signUp(credentials);
-      console.log("Sign up successful:", response);
-      setSuccess(response.message + " Redirecting to sign in...");
+      const { username, password } = validationResult.data;
+      const response = await signUp({ username, password });
 
-      setTimeout(() => {
-        navigate("/signin");
-      }, 2000);
+      setSuccess(response.message + " Redirecting to sign in...");
+      setTimeout(() => navigate("/signin"), 2000);
     } catch (err: any) {
       console.error("Sign Up failed:", err);
-      setError(
-        err.response?.data?.message || "Sign Up failed. Please try again."
-      );
+      setErrors({
+        api: err.response?.data?.message || "Sign Up failed. Please try again.",
+      });
     }
   };
 
@@ -40,7 +83,9 @@ const SignUpPage = (): JSX.Element => {
           Create an Account
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-red-600 text-center">{error}</p>}
+          {errors.api && (
+            <p className="text-red-600 text-center">{errors.api}</p>
+          )}
           {success && <p className="text-green-600 text-center">{success}</p>}
           <div>
             <label
@@ -54,9 +99,12 @@ const SignUpPage = (): JSX.Element => {
               type="text"
               required
               className="w-full p-2 mt-1 border border-gray-300 rounded-md"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={formData.username}
+              onChange={handleChange}
             />
+            {errors.username && (
+              <p className="text-red-600 text-xs mt-1">{errors.username}</p>
+            )}
           </div>
           <div>
             <label
@@ -70,9 +118,33 @@ const SignUpPage = (): JSX.Element => {
               type="password"
               required
               className="w-full p-2 mt-1 border border-gray-300 rounded-md"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleChange}
             />
+            {errors.password && (
+              <p className="text-red-600 text-xs mt-1">{errors.password}</p>
+            )}
+          </div>
+          <div>
+            <label
+              htmlFor="confirmPassword"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Confirm Password
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              required
+              className="w-full p-2 mt-1 border border-gray-300 rounded-md"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+            />
+            {errors.confirmPassword && (
+              <p className="text-red-600 text-xs mt-1">
+                {errors.confirmPassword}
+              </p>
+            )}
           </div>
           <button
             type="submit"
