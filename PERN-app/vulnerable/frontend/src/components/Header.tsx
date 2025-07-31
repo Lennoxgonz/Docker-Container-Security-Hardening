@@ -1,6 +1,7 @@
+import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-function Header() {
+const Header = (): JSX.Element => {
   const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
@@ -11,7 +12,7 @@ function Header() {
     try {
       user = JSON.parse(userString);
     } catch (e) {
-      console.error("Failed to parse user data from storage:", e);
+      console.error("Failed to get user data", e);
       localStorage.removeItem("user");
     }
   }
@@ -61,6 +62,6 @@ function Header() {
       </div>
     </header>
   );
-}
+};
 
 export default Header;

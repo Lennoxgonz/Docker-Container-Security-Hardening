@@ -4,7 +4,7 @@ type ProtectedRouteProps = {
   children: React.ReactNode;
 };
 
-function ProtectedRoute({ children }: ProtectedRouteProps) {
+const ProtectedRoute = ({ children }: ProtectedRouteProps): React.ReactNode => {
   const token = localStorage.getItem("token");
 
   if (!token) {
@@ -12,6 +12,6 @@ function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   return children;
-}
+};
 
 export default ProtectedRoute;

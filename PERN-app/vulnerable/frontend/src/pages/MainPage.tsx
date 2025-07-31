@@ -1,16 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type JSX } from "react";
 import { getMainPageData } from "../services/api";
 import Search from "../components/Search";
+import type { ApiData } from "../types/apiData.types";
 
-type ApiData = {
-  message: string;
-  user: {
-    id: number;
-    username: string;
-  };
-};
-
-function MainPage() {
+const MainPage = (): JSX.Element => {
   const [data, setData] = useState<ApiData | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -22,9 +15,7 @@ function MainPage() {
         setData(response);
       } catch (err: any) {
         console.error("Failed to fetch main page data:", err);
-        setError(
-          err.response?.data?.message || "An unexpected error occurred."
-        );
+        setError(err.response?.data?.message || "An error occurred.");
       } finally {
         setLoading(false);
       }
@@ -53,6 +44,6 @@ function MainPage() {
       </div>
     </div>
   );
-}
+};
 
 export default MainPage;

@@ -6,8 +6,9 @@ import MainPage from "./pages/MainPage";
 import Header from "./components/Header";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import ProfilePage from "./pages/ProfilePage.tsx";
+import type { JSX } from "react";
 
-function App() {
+const App = (): JSX.Element => {
   return (
     <BrowserRouter>
       <Header />
@@ -36,6 +37,6 @@ function App() {
       </Routes>
     </BrowserRouter>
   );
-}
+};
 
 export default App;

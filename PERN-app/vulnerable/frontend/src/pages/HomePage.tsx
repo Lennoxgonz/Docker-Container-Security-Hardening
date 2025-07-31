@@ -1,4 +1,6 @@
-function HomePage() {
+import type { JSX } from "react";
+
+const HomePage = (): JSX.Element => {
   return (
     <div className="flex justify-center h-screen">
       <h1 className="text-3xl font-bold max-w-xl mt-15">
@@ -7,6 +9,6 @@ function HomePage() {
       </h1>
     </div>
   );
-}
+};
 
 export default HomePage;

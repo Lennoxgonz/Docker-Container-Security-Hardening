@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../services/api";
-import type { Credentials } from "../types/credentials";
+import type { Credentials } from "../types/user.types";
 
-function SignInPage() {
+const SignInPage = (): JSX.Element => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -86,6 +86,6 @@ function SignInPage() {
       </div>
     </div>
   );
-}
+};
 
 export default SignInPage;

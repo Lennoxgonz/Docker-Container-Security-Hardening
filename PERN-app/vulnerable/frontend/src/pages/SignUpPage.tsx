@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { signUp } from "../services/api";
-import type { Credentials } from "../types/credentials";
 import { Link, useNavigate } from "react-router-dom";
+import type { Credentials } from "../types/user.types";
 
-function SignUpPage() {
+const SignUpPage = (): JSX.Element => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -93,6 +93,6 @@ function SignUpPage() {
       </div>
     </div>
   );
-}
+};
 
 export default SignUpPage;

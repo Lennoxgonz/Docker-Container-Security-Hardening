@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, type JSX } from "react";
 import { searchUsers } from "../services/api";
-import type { UserResult } from "../types/userResult";
+import type { User } from "../types/user.types";
 
-function Search() {
+const Search = (): JSX.Element => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState<UserResult[]>([]);
+  const [results, setResults] = useState<User[]>([]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,7 +18,7 @@ function Search() {
     setError("");
     setIsLoading(true);
     try {
-      const data: UserResult[] = await searchUsers(searchTerm);
+      const data: User[] = await searchUsers(searchTerm);
       setResults(data);
       if (data.length === 0) {
         setError("No users found.");
@@ -68,6 +68,6 @@ function Search() {
       )}
     </div>
   );
-}
+};
 
 export default Search;

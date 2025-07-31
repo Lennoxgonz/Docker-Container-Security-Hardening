@@ -1,15 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type JSX } from "react";
 import { useParams } from "react-router-dom";
 import { getProfile } from "../services/api";
+import type { User } from "../types/user.types";
 
-interface UserProfile {
-  id: number;
-  username: string;
-}
-
-const ProfilePage: React.FC = () => {
+const ProfilePage = (): JSX.Element => {
   const { userId } = useParams<{ userId: string }>();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profile, setProfile] = useState<User | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 

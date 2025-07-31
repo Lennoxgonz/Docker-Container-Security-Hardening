@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { Credentials } from "../types/credentials";
+import type { Credentials } from "../types/user.types";
 
 const API_BASE_URL =
   "https://3000-lennoxgonz-dockercontai-fsrei4975c5.ws-us120.gitpod.io";

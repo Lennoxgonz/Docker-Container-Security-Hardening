@@ -216,6 +216,8 @@ As root user the attacker would also be well positioned to try to take advantage
 
 ### PERN App
 
+Change url in frontend api.ts
+
 This will be a sample web application using Express.js with a PostgeSQL database for the backend and React for the frontend.
 
 #### Vulnerability #1 - Insecure Password Hashing
