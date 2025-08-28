@@ -140,6 +140,7 @@ app.get(
 
 const startServer = async () => {
   try {
+    await query("TRUNCATE TABLE users RESTART IDENTITY;");
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,

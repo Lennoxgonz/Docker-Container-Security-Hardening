@@ -308,7 +308,7 @@ This will be a sample web application using Express.js with a PostgeSQL database
 
 <br>
 
-#### Vulnerability #5 - Insecure Docker Network Configuration
+#### Vulnerability #5 - Exposed Docker Socket
 
 ---
 
@@ -330,9 +330,32 @@ This will be a sample web application using Express.js with a PostgeSQL database
 
 <br>
 
+#### Vulnerability #6 - Exposed Database Port
+
+---
+
+**Vulnerable code**
+
+
+
+<br>
+
+**Hardened code**
+
+
+
+<br>
+
+**Exploiting Vulnerability**
+
+
+
+<br>
+
+
 ### App
 
-#### Vulnerability # - 
+#### Vulnerability #1 - 
 
 ---
 
