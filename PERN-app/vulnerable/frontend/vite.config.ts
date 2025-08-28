@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     allowedHosts: [
-      "5173-lennoxgonz-dockercontai-fsrei4975c5.ws-us120.gitpod.io",
+      "5173-lennoxgonz-dockercontai-f2jvnhw7g0z.ws-us121.gitpod.io",
     ],
   },
 });

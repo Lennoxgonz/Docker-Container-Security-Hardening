@@ -1,7 +1,6 @@
 import { query } from "./db";
-import { User } from "./types/user.types";
+import { User } from "./types/user";
 import crypto from "crypto";
-//import bcrypt from "bcrypt";
 
 // Vulnerability #1 - Insecure Password Hashing
 export const createUser = async (newUser: User) => {
@@ -59,7 +58,7 @@ export const searchUsers = async (searchTerm: string) => {
  * which safely handles its inclusion in the query
 
 export const searchUsers = async (searchTerm: string) => {
-  // The SQL query uses a placeholder (e.g., $1) instead of the raw variable.
+  // The SQL query uses a placeholder (e.g., $1) instead of the actual variable.
   const sql = `SELECT id, username FROM users WHERE username LIKE $1`;
 
   // The variable is passed in an array as the second argument to the query function.

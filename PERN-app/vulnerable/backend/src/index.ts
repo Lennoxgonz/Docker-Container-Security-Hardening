@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
-//import bcrypt from "bcrypt";
 import { query } from "./db";
 import * as userService from "./userService";
 import { usersToSeed } from "./data/usersToSeed";
@@ -22,7 +21,7 @@ declare global {
 const app = express();
 
 const allowedOrigins = [
-  "https://5173-lennoxgonz-dockercontai-fsrei4975c5.ws-us120.gitpod.io",
+  "https://5173-lennoxgonz-dockercontai-f2jvnhw7g0z.ws-us121.gitpod.io",
   "http://localhost:5173",
 ];
 

@@ -14,8 +14,13 @@ const signUpSchema = z
       ),
     password: z
       .string()
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
       .regex(/[0-9]/, "Password must contain at least one number")
-      .regex(/[^a-zA-Z0-9]/, "Password must contain at least one special character")
+      .regex(
+        /[^a-zA-Z0-9]/,
+        "Password must contain at least one special character"
+      )
       .min(8, "Password must be at least 8 characters long"),
     confirmPassword: z.string(),
   })
@@ -123,6 +128,12 @@ const SignUpPage = (): React.ReactNode => {
               value={formData.password}
               onChange={handleChange}
             />
+            <ul className="text-xs text-gray-500 mt-2 list-disc list-inside">
+              <li>At least 8 characters</li>
+              <li>1 uppercase & 1 lowercase letter</li>
+              <li>1 number</li>
+              <li>1 special character (e.g., !@#$%)</li>
+            </ul>
             {errors.password && (
               <p className="text-red-600 text-xs mt-1">{errors.password}</p>
             )}

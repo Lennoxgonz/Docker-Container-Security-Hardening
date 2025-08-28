@@ -216,7 +216,7 @@ As root user the attacker would also be well positioned to try to take advantage
 
 ### PERN App
 
-Change url in frontend api.ts
+Change url in frontend api.ts and remove gitpod from allows host in vite config and backend
 
 This will be a sample web application using Express.js with a PostgeSQL database for the backend and React for the frontend.
 
