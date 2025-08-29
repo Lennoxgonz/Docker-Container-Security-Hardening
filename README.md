@@ -242,7 +242,23 @@ This will be a sample web application using Express.js with a PostgeSQL database
 
 **Vulnerable code**
 
+./backend/src/user-service.ts
+```
+export const createUser = async (newUser: User) => {
+  const { username, password } = newUser;
+  const md5Hash = crypto.createHash("md5").update(password).digest("hex");
+  const sql = "INSERT INTO users (username, password) VALUES ($1, $2)";
+  return query(sql, [username, md5Hash]);
+};
 
+export const findUser = async (credentials: User) => {
+  const { username, password } = credentials;
+  const md5Hash = crypto.createHash("md5").update(password).digest("hex");
+  const sql = "SELECT * FROM users WHERE username = $1 AND password = $2";
+  const result = await query(sql, [username, md5Hash]);
+  return result.rows[0];
+};
+```
 
 <br>
 

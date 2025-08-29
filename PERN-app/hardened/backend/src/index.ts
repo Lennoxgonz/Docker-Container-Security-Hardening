@@ -140,7 +140,6 @@ app.get(
 
 const startServer = async () => {
   try {
-    await query("TRUNCATE TABLE users RESTART IDENTITY;");
     const createTableQuery = `
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -149,7 +148,8 @@ const startServer = async () => {
       );
     `;
     await query(createTableQuery);
-    console.log("Table 'users' is verified or created.");
+    await query("TRUNCATE TABLE users RESTART IDENTITY;");
+    console.log("Table 'users' is verified or created and has been reset.");
 
     // Adding sample users for search functionality
     console.log("Adding sample users...");
