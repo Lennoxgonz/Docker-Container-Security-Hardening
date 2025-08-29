@@ -1,0 +1,66 @@
+import { Link, useNavigate } from "react-router-dom";
+
+const Header = (): React.ReactNode => {
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  let user = null;
+  const userString = localStorage.getItem("user");
+
+  if (userString && userString !== "undefined") {
+    try {
+      user = JSON.parse(userString);
+    } catch (e) {
+      console.error("Failed to get user data", e);
+      localStorage.removeItem("user");
+    }
+  }
+
+  const handleSignOut = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/signin");
+  };
+
+  return (
+    <header className="bg-white p-4 shadow-md">
+      <div className="container mx-auto flex justify-between items-center">
+        <div className="text-lg font-bold">
+          <Link to="/">Hardened App</Link>
+        </div>
+        <nav className="space-x-6">
+          {token && user ? (
+            <>
+              <Link to="/main" className="text-gray-600 hover:text-gray-900">
+                Main Page
+              </Link>
+              <Link
+                to={`/profile/${user.id}`}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                My Profile
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="text-gray-600 hover:text-gray-900"
+              >
+                Sign Out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/signin" className="text-gray-600 hover:text-gray-900">
+                Sign In
+              </Link>
+              <Link to="/signup" className="text-gray-600 hover:text-gray-900">
+                Sign Up
+              </Link>
+            </>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+};
+
+export default Header;

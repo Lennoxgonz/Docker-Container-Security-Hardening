@@ -1,0 +1,63 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - '5173:5173'
+    volumes:
+    - ./frontend:/usr/src/app
+    - /usr/src/app/node_modules      
+    depends_on:
+      - backend
+    networks:
+    # Vulnerability #4 - Insecure Docker Network Configuration
+    # Part 1/4 - Frontend attached to same network as backend and db
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+    
+    # Vulnerability #5 - Exposed Docker Socket
+    - /var/run/docker.sock:/var/run/docker.sock
+
+    - ./backend:/usr/src/app
+    - /usr/src/app/node_modules
+    environment:
+      DATABASE_URL: postgres://user:password@db:5432/mydatabase
+    depends_on:
+      - db
+    networks:
+    # Vulnerability #4 - Insecure Docker Network Configuration
+    # Part 2/4 - Backend attached to same network as frontend and db
+      - app-network
+
+  db:
+    image: postgres:17.5-bookworm
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    ports:
+    # Vulnerability #6 - Exposed Database Port 
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+    # Vulnerability #4 - Insecure Docker Network Configuration
+    # Part 3/4 - Db attached to same network as backend and frontend
+      - app-network
+
+networks:
+  # Vulnerability #4 - Insecure Docker Network Configuration
+  # Part 4/4 - Single central network with all services attached to it
+  app-network:
+    driver: bridge
+    
+volumes:
+  postgres-data:
