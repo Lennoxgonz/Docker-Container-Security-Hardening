@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getMainPageData } from "../services/api";
 import Search from "../components/Search";
-import type { ApiData } from "../types/apiData.types";
+import type { ApiData } from "../types/api-data";
 
 const MainPage = (): React.ReactNode => {
   const [data, setData] = useState<ApiData | null>(null);

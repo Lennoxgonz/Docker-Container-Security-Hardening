@@ -3,8 +3,8 @@ import cors from "cors";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { query } from "./db";
-import * as userService from "./userService";
-import { usersToSeed } from "./data/usersToSeed";
+import * as userService from "./user-service";
+import { usersToSeed } from "./data/users";
 
 const JWT_SECRET =
   "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
@@ -44,7 +44,7 @@ app.use(express.json());
 app.post("/signup", async (req: Request, res: Response) => {
   try {
     await userService.createUser(req.body);
-    res.status(201).json({ message: "User signed up successfully" });
+    res.status(201).json({ message: "User sign up successful" });
   } catch (error) {
     console.error("Signup Error:", error);
     res.status(400).json({ message: "Username may already be taken." });

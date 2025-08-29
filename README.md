@@ -6,9 +6,25 @@ For each sample application this README will provide a detailed outline of each 
 
 ## Quick Start
 
+### PERN App (Docker Compose)
+
 * Building and running vulnerable version.
 
-`cd ./app-you-want-to-build/vulnerable`
+`cd ./PERN-app/vulnerable`
+
+`docker compose up`
+
+* Building and running hardened version with vulnerability fixes.
+
+`cd ./PERN-app/hardened`
+
+`docker compose up`
+
+### Flask App (Single Docker File)
+
+* Building and running vulnerable version.
+
+`cd ./flask-app/vulnerable`
 
 `docker build -t vulnerable-app .`
 
@@ -16,7 +32,7 @@ For each sample application this README will provide a detailed outline of each 
 
 * Building and running hardened version with vulnerability fixes.
 
-`cd ./app-you-want-to-build/hardened`
+`cd ./flask-app/hardened`
 
 `docker build -t hardened-app .`
 

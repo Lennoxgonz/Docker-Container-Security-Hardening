@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { searchUsers } from "../services/api";
-import type { User } from "../types/user.types";
+import type { User } from "../types/user";
 
 const Search = (): React.ReactNode => {
   const [searchTerm, setSearchTerm] = useState("");

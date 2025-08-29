@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { signIn } from "../services/api";
-import type { Credentials } from "../types/user.types";
+import type { Credentials } from "../types/user";
 
 const SignInPage = (): React.ReactNode => {
   const [username, setUsername] = useState("");

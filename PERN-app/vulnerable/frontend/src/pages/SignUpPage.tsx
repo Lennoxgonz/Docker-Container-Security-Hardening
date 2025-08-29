@@ -73,7 +73,7 @@ const SignUpPage = (): React.ReactNode => {
       const { username, password } = validationResult.data;
       const response = await signUp({ username, password });
 
-      setSuccess(response.message + " Redirecting to sign in...");
+      setSuccess(response.message + " Redirecting to sign in.");
       setTimeout(() => navigate("/signin"), 2000);
     } catch (err: any) {
       console.error("Sign Up failed:", err);

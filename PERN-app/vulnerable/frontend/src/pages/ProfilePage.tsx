@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { getProfile } from "../services/api";
-import type { User } from "../types/user.types";
+import type { User } from "../types/user";
 
 const ProfilePage = (): React.ReactNode => {
   const { userId } = useParams<{ userId: string }>();
