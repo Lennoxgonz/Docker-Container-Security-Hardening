@@ -21,7 +21,6 @@ declare global {
 const app = express();
 
 const allowedOrigins = [
-  "https://5173-lennoxgonz-dockercontai-f2jvnhw7g0z.ws-us121.gitpod.io",
   "http://localhost:5173",
 ];
 

@@ -26,7 +26,7 @@ const Header = (): React.ReactNode => {
     <header className="bg-white p-4 shadow-md">
       <div className="container mx-auto flex justify-between items-center">
         <div className="text-lg font-bold">
-          <Link to="/">Hardened App</Link>
+          <Link to="/">Vulnerable App</Link>
         </div>
         <nav className="space-x-6">
           {token && user ? (

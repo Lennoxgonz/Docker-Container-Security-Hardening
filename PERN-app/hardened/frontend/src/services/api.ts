@@ -1,9 +1,7 @@
 import axios from "axios";
 import type { Credentials } from "../types/user";
 
-const API_BASE_URL =
-  "https://3000-lennoxgonz-dockercontai-f2jvnhw7g0z.ws-us121.gitpod.io";
-//const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "http://localhost:3000";
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
