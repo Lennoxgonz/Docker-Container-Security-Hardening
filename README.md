@@ -427,6 +427,28 @@ Escaping backslashes in user input is also important because backslash is the SQ
 **Vulnerable Code**
 
 - Part 1/1: `PERN-app/vulnerable/backend/src/index.ts` (`/profile/:id`)
+
+```ts
+app.get(
+  "/profile/:id",
+  authenticateToken,
+  async (req: Request, res: Response) => {
+    const profileIdToView = parseInt(req.params.id!, 10);
+
+    try {
+      const userProfile = await userService.findUserById(profileIdToView);
+      if (userProfile) {
+        res.json(userProfile);
+      } else {
+        res.status(404).json({ message: "User not found" });
+      }
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
+    }
+  }
+);
+```
+
 <br>
 
 **Hardened Code**
@@ -437,32 +459,37 @@ app.get(
   authenticateToken,
   async (req: Request, res: Response) => {
     const profileIdToView = parseInt(req.params.id!, 10);
-    const loggedInUserId = req.user?.id;
-
-    if (!loggedInUserId || loggedInUserId !== profileIdToView) {
-      return res.status(403).json({ message: "Forbidden" });
+    if (!req.user || req.user.id !== profileIdToView) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
     }
 
     try {
       const userProfile = await userService.findUserById(profileIdToView);
-      if (!userProfile) {
-        return res.status(404).json({ message: "User not found" });
+      if (userProfile) {
+        res.json(userProfile);
+      } else {
+        res.status(404).json({ message: "User not found" });
       }
-      return res.json(userProfile);
-    } catch (error) {
-      return res.status(500).json({ message: "Internal server error" });
+    } catch {
+      res.status(500).json({ message: "Internal server error" });
     }
   }
 );
 ```
 
-This hardened implementation enforces object-level authorization by requiring the requested profile ID to match the authenticated user's ID.
 <br>
 
 **Exploiting Vulnerability**
 
 In this vulnerable implementation, an authenticated user can modify the profile ID in the URL and access another user's profile data.
+
 <br>
+
+This hardened implementation enforces object-level authorization by requiring the requested profile ID to match the authenticated user's ID (`if (!req.user || req.user.id !== profileIdToView)`).
+
+<br>
+
 
 #### Vulnerability #4 - Overexposed Container Networking and Service Ports
 

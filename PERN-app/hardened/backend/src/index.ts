@@ -142,16 +142,17 @@ app.get("/main", authenticateToken, (req: Request, res: Response) => {
 
 /**
  * Vulnerability #3 - Insecure Direct Object Reference
- * Part 1/1 - Object-level authorization is missing on profile lookup.
- * Any authenticated user can request another user's profile by changing the URL id.
+ * Part 1/1 - The route now blocks cross-user profile access with an ownership check.
  */
 app.get(
   "/profile/:id",
   authenticateToken,
   async (req: Request, res: Response) => {
     const profileIdToView = parseInt(req.params.id!, 10);
-    // This code does not check if the logged-in user's ID `req.user.id`
-    // matches the ID from the URL `profileIdToView`
+    if (!req.user || req.user.id !== profileIdToView) {
+      res.status(403).json({ message: "Forbidden" });
+      return;
+    }
 
     try {
       const userProfile = await userService.findUserById(profileIdToView);
@@ -165,6 +166,7 @@ app.get(
     }
   }
 );
+
 
 const startServer = async () => {
   try {

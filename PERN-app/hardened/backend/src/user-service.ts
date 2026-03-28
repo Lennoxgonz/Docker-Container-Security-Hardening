@@ -42,7 +42,6 @@ export const searchUsers = async (searchTerm: string) => {
     return [];
   }
 
-  // Escape SQL LIKE wildcards so user input cannot widen search scope.
   const escapedSearchTerm = normalizedSearchTerm.replace(/[\\%_]/g, "\\$&");
 
   const sql = `
