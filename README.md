@@ -349,7 +349,7 @@ In the vulnerable version, MD5 is used as the hashing algorithm for user credent
 
 <br>
 
-This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare`. It also seeds the seed user data with bcrypt to match. In addition, since the user credentials are no longer hard coded it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
+This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare`(Part 1/2). It also seeds the seed user data with bcrypt to match(Part 3). In addition, since the user credentials are no longer hard coded it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
 
 <br>
 
@@ -428,6 +428,9 @@ Escaping backslashes in user input is also important because backslash is the SQ
 
 - Part 1/1: `PERN-app/vulnerable/backend/src/index.ts` (`/profile/:id`)
 
+<br>
+
+`PERN-app/vulnerable/backend/src/index.ts`
 ```ts
 app.get(
   "/profile/:id",
@@ -453,6 +456,7 @@ app.get(
 
 **Hardened Code**
 
+`PERN-app/hardened/backend/src/index.ts`
 ```ts
 app.get(
   "/profile/:id",
@@ -499,6 +503,74 @@ This hardened implementation enforces object-level authorization by requiring th
 
 - Part 1/5 through Part 5/5: `PERN-app/vulnerable/docker-compose.yml`
 
+```yml
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      # Exposed for local demo access
+      - '5173:5173'
+    volumes:
+    - ./frontend:/usr/src/app:ro
+    - /usr/src/app/node_modules      
+    depends_on:
+      - backend
+    networks:
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 1/5 - Frontend attached to same network as backend and db
+      - app-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      # Exposed for local demo API access
+      - '3000:3000'
+    volumes:
+    
+    # Vulnerability #5 - Backend container mounts host Docker socket directly - Out of scope here, addressed in its own section
+    - /var/run/docker.sock:/var/run/docker.sock
+
+    - ./backend:/usr/src/app:ro
+    - /usr/src/app/node_modules
+    depends_on:
+      - db
+    networks:
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 2/5 - Backend attached to same network as frontend and db
+      - app-network
+
+  db:
+    image: postgres:17.5-bookworm
+    environment:
+      # Vulnerability #6 - Postgres credentials stored as plaintext in compose - Out of scope here, addressed in its own section
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    ports:
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 3/5 - Database service port is published to the host
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 4/5 - Db attached to same network as backend and frontend
+      - app-network
+
+networks:
+  # Vulnerability #4 - Overexposed Container Networking and Service Ports
+  # Part 5/5 - Single central network with all services attached to it
+  app-network:
+    driver: bridge
+    
+volumes:
+  postgres-data:
+  ```
+
 <br>
 
 **Hardened Code**
@@ -510,10 +582,16 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
+      # Exposed for local demo access
       - "5173:5173"
+    volumes:
+      - ./frontend:/usr/src/app:ro
+      - /usr/src/app/node_modules
     depends_on:
       - backend
     networks:
+      # Vulnerability #4 - Overexposed Container Networking and Service Ports
+      # Part 1/5 - Frontend isolated from database network.
       - public-network
 
   backend:
@@ -521,22 +599,38 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
+      # Exposed for local demo API access
       - "3000:3000"
+    volumes:
+      # Vulnerability #5 - Backend container mounts host Docker socket directly - Out of scope here, addressed in its own section
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      - ./backend:/usr/src/app:ro
+      - /usr/src/app/node_modules
     depends_on:
       - db
     networks:
+      # Vulnerability #4 - Overexposed Container Networking and Service Ports
+      # Part 2/5 - Backend bridges public and private traffic boundaries.
       - public-network
       - private-network
 
   db:
     image: postgres:17.5-bookworm
     environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+      # Vulnerability #6 - Postgres credentials stored as plaintext in compose - Out of scope here, addressed in its own section
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydatabase
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 3/5 - Database port is no longer published to host.
     expose:
       - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     networks:
+      # Vulnerability #4 - Overexposed Container Networking and Service Ports
+      # Part 4/5 - Database attached only to private network.
       - private-network
 
 networks:
@@ -544,16 +638,41 @@ networks:
     driver: bridge
   private-network:
     driver: bridge
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 5/5 - Internal-only network blocks external routing.
     internal: true
-```
 
-This hardened implementation segments container traffic and avoids publishing the database port to the host, so the database is reachable only from services on the private network.
+volumes:
+  postgres-data:
+```
 
 <br>
 
 **Exploiting Vulnerability**
 
-In this vulnerable implementation, attackers can move laterally between services on a flat network, and the host-published database port increases direct attack surface against PostgreSQL.
+The vulnerable version has various security issues.
+
+Part 1/5 - The database is on the same network as the frontend. The frontend is internet facing and has a larger attack surface (npm dependancies and JS tooling). So this uneccesarily exposes the database to these risks as if an attacker compromises the frontend they will then be on the database network.
+
+Part 2/5 - The backend is on one flat network with everything. In a flat network compromise of any service give attackers lateral movement across services.
+
+Part 4/5 (Skipping 3 as 1,2, and 4 are very related) - Database is attached to a shared app network this allows more communication to the database then neccessary.
+
+Part 3/5 - The database is published to host, this exposes the database beyond internal app use. So any process or user on host can attempt DB access
+
+Part 5/5 - There is a single central network, flat network topology like this allows one security breach to cascade across services
+
+This hardened code addresses Vulnerability #4 only (network segmentation and database port exposure). Vulnerability #5 and Vulnerability #6 are intentionally unchanged here and are remediated in their dedicated sections.
+
+<br>
+
+The hardened Docker Compose file has multiple fixes for these issues.
+
+First, network segmentation is added `public-network` and `private-network` is used, and the private network is set to private/internal `private-network.internal: true`. This directly resolve Part 5/5 and allows for part 1,2, and 4 to be solved.
+
+Second, the frontend is assigned to `public-network`, backend to `public-network and `private-network`, and db to `private-network`. This addresses Part 1, 2, and 4.
+
+Lastly, the host db exposure is addressed by replacing `ports: "5432:5432"` with `expose: "5432"`. This allows the db to accessed by interal app traffic, but not host or external paths. This resolves Part 3/5
 
 <br>
 
