@@ -12,6 +12,11 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
+    /**
+     * Vulnerability #7 - Missing Auth/API Hardening Controls
+     * Part 1/3 - JWT lifecycle is handled through localStorage in the API layer.
+     * Script access to localStorage enables token theft during XSS.
+     */
     const token = localStorage.getItem("token");
     if (token) {
       config.headers["Authorization"] = `Bearer ${token}`;
@@ -29,7 +34,6 @@ apiClient.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      console.error("Session expired. Please sign in again.");
       localStorage.removeItem("token");
       window.location.href = "/signin";
     }
@@ -45,6 +49,7 @@ export const signUp = async (credentials: Credentials) => {
 
 export const signIn = async (credentials: Credentials) => {
   const { data } = await apiClient.post("/signin", credentials);
+  localStorage.setItem("token", data.token);
   return data;
 };
 

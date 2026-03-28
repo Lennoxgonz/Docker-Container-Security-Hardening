@@ -75,10 +75,12 @@ const SignUpPage = (): React.ReactNode => {
 
       setSuccess(response.message + " Redirecting to sign in.");
       setTimeout(() => navigate("/signin"), 2000);
-    } catch (err: any) {
-      console.error("Sign Up failed:", err);
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message ?? "Sign Up failed. Please try again.";
       setErrors({
-        api: err.response?.data?.message || "Sign Up failed. Please try again.",
+        api: message,
       });
     }
   };

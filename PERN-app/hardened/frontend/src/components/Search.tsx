@@ -23,8 +23,12 @@ const Search = (): React.ReactNode => {
       if (data.length === 0) {
         setError("No users found.");
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred.");
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "An error occurred.";
+      setError(message);
       setResults([]);
     } finally {
       setIsLoading(false);

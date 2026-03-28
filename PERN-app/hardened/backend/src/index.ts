@@ -1,14 +1,19 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
-import jwt from "jsonwebtoken";
+import jwt, { JwtPayload } from "jsonwebtoken";
 import crypto from "crypto";
 import { query } from "./db";
 import * as userService from "./user-service";
 import { usersToSeed } from "./data/users";
+import { parseSearchTerm, parseSigninPayload, parseSignupPayload } from "./types/dto";
 
+/**
+ * Vulnerability #6 - Hardcoded Secrets and Credentials
+ * Part 1/4 - JWT signing secret is hardcoded in backend source.
+ * If this value leaks, attackers can forge valid tokens.
+ */
 const JWT_SECRET =
   "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
-const SALT_ROUNDS = 10;
 
 declare global {
   namespace Express {
@@ -38,21 +43,42 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+/**
+ * Vulnerability #7 - Missing Auth/API Hardening Controls
+ * Part 2/3 - Basic security headers middleware is missing (helmet/CSP/HSTS/frameguard).
+ */
 app.use(express.json());
 
 app.post("/signup", async (req: Request, res: Response) => {
+  const signupPayload = parseSignupPayload(req.body);
+  if (!signupPayload) {
+    return res.status(400).json({
+      message:
+        "Invalid signup data. Username must be at least 3 characters and password must be 8+ chars with uppercase, lowercase, number, and special character.",
+    });
+  }
+
   try {
-    await userService.createUser(req.body);
+    await userService.createUser(signupPayload);
     res.status(201).json({ message: "User sign up successful" });
-  } catch (error) {
-    console.error("Signup Error:", error);
+  } catch {
     res.status(400).json({ message: "Username may already be taken." });
   }
 });
 
 app.post("/signin", async (req: Request, res: Response) => {
+  /**
+   * Vulnerability #7 - Missing Auth/API Hardening Controls
+   * Part 3/3 - No brute-force protection on signin.
+   * This route has no rate limit, lockout, or backoff.
+   */
+  const signinPayload = parseSigninPayload(req.body);
+  if (!signinPayload) {
+    return res.status(400).json({ message: "Invalid credentials payload" });
+  }
+
   try {
-    const user = await userService.findUser(req.body);
+    const user = await userService.findUser(signinPayload);
     if (user) {
       const payload = { id: user.id, username: user.username };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
@@ -64,25 +90,8 @@ app.post("/signin", async (req: Request, res: Response) => {
     } else {
       res.status(401).json({ message: "Invalid credentials" });
     }
-  } catch (error) {
-    console.error("Signin Error:", error);
+  } catch {
     res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.get("/search", async (req: Request, res: Response) => {
-  const searchTerm = req.query.term as string;
-
-  if (!searchTerm && searchTerm !== "") {
-    return res.status(400).json({ message: "Search term is required" });
-  }
-
-  try {
-    const users = await userService.searchUsers(searchTerm);
-    res.json(users);
-  } catch (error) {
-    console.error("Search Error:", error);
-    res.status(500).json({ message: "Error during search" });
   }
 });
 
@@ -94,14 +103,34 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ message: "Authentication token required" });
   }
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       return res.status(403).json({ message: "Invalid or expired token" });
     }
-    req.user = user;
+
+    const verifiedUser = user as JwtPayload & { id?: number; username?: string };
+    if (typeof verifiedUser.id !== "number" || typeof verifiedUser.username !== "string") {
+      return res.status(403).json({ message: "Invalid token payload" });
+    }
+
+    req.user = { id: verifiedUser.id, username: verifiedUser.username };
     next();
   });
 };
+
+app.get("/search", authenticateToken, async (req: Request, res: Response) => {
+  const searchTerm = parseSearchTerm(req.query.term);
+  if (searchTerm === null) {
+    return res.status(400).json({ message: "Search term is required" });
+  }
+
+  try {
+    const users = await userService.searchUsers(searchTerm);
+    res.json(users);
+  } catch {
+    res.status(500).json({ message: "Error during search" });
+  }
+});
 
 app.get("/main", authenticateToken, (req: Request, res: Response) => {
   res.json({
@@ -109,11 +138,10 @@ app.get("/main", authenticateToken, (req: Request, res: Response) => {
   });
 });
 
-/*
+/**
  * Vulnerability #3 - Insecure Direct Object Reference
- * This endpoint is vulnerable because it checks that a user is authenticated
- * with `authenticateToken`, but it does not perform an authorization check
- * to ensure the logged-in user is the one whose profile is being requested
+ * Part 1/1 - Object-level authorization is missing on profile lookup.
+ * Any authenticated user can request another user's profile by changing the URL id.
  */
 app.get(
   "/profile/:id",
@@ -130,8 +158,7 @@ app.get(
       } else {
         res.status(404).json({ message: "User not found" });
       }
-    } catch (error) {
-      console.error("Profile access error:", error);
+    } catch {
       res.status(500).json({ message: "Internal server error" });
     }
   }
@@ -148,13 +175,13 @@ const startServer = async () => {
     `;
     await query(createTableQuery);
     await query("TRUNCATE TABLE users RESTART IDENTITY;");
-    console.log("Table 'users' is verified or created and has been reset.");
 
-    // Adding sample users for search functionality
-    console.log("Adding sample users...");
-
+    /**
+     * Vulnerability #1 - Insecure Password Hashing
+     * Part 3/3 - Sample users are seeded with MD5.
+     * Seed credentials use MD5, matching insecure login hashing.
+     */
     for (const user of usersToSeed) {
-      // Also using insecure MD5 hasing algorithm for sample users
       const md5Hash = crypto
         .createHash("md5")
         .update(user.password)
@@ -165,13 +192,10 @@ const startServer = async () => {
       };
       await query(seedQuery.text, seedQuery.values);
     }
-    console.log("Sample seeded successfully.");
 
-    app.listen(3000, () => {
-      console.log(`Server running`);
-    });
-  } catch (error) {
-    console.error("Failed to start server:", error);
+    app.listen(3000);
+  } catch {
+    process.exitCode = 1;
   }
 };
 

@@ -1,3 +1,8 @@
+/**
+ * Vulnerability #6 - Hardcoded Secrets and Credentials
+ * Part 4/4 - Seeded account credentials stored in plaintext in source code.
+ * Plaintext credentials in source control are recoverable and reusable.
+ */
 export const usersToSeed = [
   { username: "alice", password: "Gr@phQL$25" },
   { username: "bob", password: "BlueWh@le_1" },

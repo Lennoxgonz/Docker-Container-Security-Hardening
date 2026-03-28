@@ -4,8 +4,8 @@ import SignUpPage from "./pages/SignUpPage";
 import SignInPage from "./pages/SignInPage";
 import MainPage from "./pages/MainPage";
 import Header from "./components/Header";
-import ProtectedRoute from "./components/ProtectedRoute.tsx";
-import ProfilePage from "./pages/ProfilePage.tsx";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ProfilePage from "./pages/ProfilePage";
 
 const App = (): React.ReactNode => {
   return (

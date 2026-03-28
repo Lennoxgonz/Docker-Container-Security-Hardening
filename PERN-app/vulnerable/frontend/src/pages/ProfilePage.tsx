@@ -23,8 +23,11 @@ const ProfilePage = (): React.ReactNode => {
       try {
         const data = await getProfile(userId);
         setProfile(data);
-      } catch (err: any) {
-        setError(err.response?.data?.message || "Failed to load profile.");
+      } catch (error: unknown) {
+        const message =
+          (error as { response?: { data?: { message?: string } } }).response
+            ?.data?.message ?? "Failed to load profile.";
+        setError(message);
       } finally {
         setLoading(false);
       }

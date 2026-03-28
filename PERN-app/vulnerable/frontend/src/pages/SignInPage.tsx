@@ -16,16 +16,13 @@ const SignInPage = (): React.ReactNode => {
     const credentials: Credentials = { username, password };
 
     try {
-      const response = await signIn(credentials);
-      localStorage.setItem("token", response.token);
-      localStorage.setItem("user", JSON.stringify(response.user));
-
+      await signIn(credentials);
       navigate("/main");
-    } catch (err: any) {
-      console.error("Sign In failed:", err);
-      setError(
-        err.response?.data?.message || "Sign In failed. Please try again."
-      );
+    } catch (error: unknown) {
+      const message =
+        (error as { response?: { data?: { message?: string } } }).response?.data
+          ?.message ?? "Sign In failed. Please try again.";
+      setError(message);
     }
   };
 

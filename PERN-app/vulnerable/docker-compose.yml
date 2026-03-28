@@ -4,15 +4,16 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
+      # Exposed for local demo access
       - '5173:5173'
     volumes:
-    - ./frontend:/usr/src/app
+    - ./frontend:/usr/src/app:ro
     - /usr/src/app/node_modules      
     depends_on:
       - backend
     networks:
-    # Vulnerability #4 - Insecure Docker Network Configuration
-    # Part 1/4 - Frontend attached to same network as backend and db
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 1/5 - Frontend attached to same network as backend and db
       - app-network
 
   backend:
@@ -20,42 +21,46 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
+      # Exposed for local demo API access
       - '3000:3000'
     volumes:
     
     # Vulnerability #5 - Exposed Docker Socket
+    # Part 1/1 - Backend container mounts host Docker socket directly.
     - /var/run/docker.sock:/var/run/docker.sock
 
-    - ./backend:/usr/src/app
+    - ./backend:/usr/src/app:ro
     - /usr/src/app/node_modules
-    environment:
-      DATABASE_URL: postgres://user:password@db:5432/mydatabase
     depends_on:
       - db
     networks:
-    # Vulnerability #4 - Insecure Docker Network Configuration
-    # Part 2/4 - Backend attached to same network as frontend and db
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 2/5 - Backend attached to same network as frontend and db
       - app-network
 
   db:
     image: postgres:17.5-bookworm
     environment:
+      # Vulnerability #6 - Hardcoded Secrets and Credentials
+      # Part 3/4 - Postgres credentials stored as plaintext in compose.
+      # Credentials are embedded in compose and exposed to anyone with file access.
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
     ports:
-    # Vulnerability #6 - Exposed Database Port 
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 3/5 - Database service port is published to the host
       - '5432:5432'
     volumes:
       - postgres-data:/var/lib/postgresql/data
     networks:
-    # Vulnerability #4 - Insecure Docker Network Configuration
-    # Part 3/4 - Db attached to same network as backend and frontend
+    # Vulnerability #4 - Overexposed Container Networking and Service Ports
+    # Part 4/5 - Db attached to same network as backend and frontend
       - app-network
 
 networks:
-  # Vulnerability #4 - Insecure Docker Network Configuration
-  # Part 4/4 - Single central network with all services attached to it
+  # Vulnerability #4 - Overexposed Container Networking and Service Ports
+  # Part 5/5 - Single central network with all services attached to it
   app-network:
     driver: bridge
     

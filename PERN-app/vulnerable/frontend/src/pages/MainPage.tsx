@@ -13,9 +13,11 @@ const MainPage = (): React.ReactNode => {
       try {
         const response = await getMainPageData();
         setData(response);
-      } catch (err: any) {
-        console.error("Failed to fetch main page data:", err);
-        setError(err.response?.data?.message || "An error occurred.");
+      } catch (error: unknown) {
+        const message =
+          (error as { response?: { data?: { message?: string } } }).response
+            ?.data?.message ?? "An error occurred.";
+        setError(message);
       } finally {
         setLoading(false);
       }
