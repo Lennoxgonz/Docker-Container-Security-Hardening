@@ -324,15 +324,11 @@ export const findUser = async (credentials: AuthCredentialsDto) => {
   return user && (await bcrypt.compare(password, user.password)) ? user : null;
 };
 ```
+
 `PERN-app/hardened/backend/src/index.ts`
 ```ts
-const seedUserPassword = process.env.SEED_USER_PASSWORD;
-if (!seedUserPassword) {
-  throw new Error("SEED_USER_PASSWORD is required for local seed data");
-}
-
 for (const user of usersToSeed) {
-  const hashedPassword = await bcrypt.hash(seedUserPassword, SALT_ROUNDS);
+  const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
   const seedQuery = {
     text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
     values: [user.username, hashedPassword],
@@ -743,89 +739,138 @@ This hardened implementation removes the Docker socket bind mount entirely, beca
 **Vulnerable Code**
 
 - Part 1/4: `PERN-app/vulnerable/backend/src/index.ts`  
-- Part 2/4: `PERN-app/vulnerable/backend/src/db.ts`  
+```ts
+const JWT_SECRET =
+  "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
+```
+
+- Part 2/4: `PERN-app/vulnerable/backend/src/db.ts`
+```ts
+const pool = new Pool({
+  user: "user",
+  host: "db",
+  database: "mydatabase",
+  password: "password",
+  port: 5432,
+});
+```
+
 - Part 3/4: `PERN-app/vulnerable/docker-compose.yml`  
+```yml
+POSTGRES_USER: user
+POSTGRES_PASSWORD: password
+POSTGRES_DB: mydatabase
+```
+
 - Part 4/4: `PERN-app/vulnerable/backend/src/data/users.ts`
+```ts
+export const usersToSeed = [
+  { username: "alice", password: "Gr@phQL$25" },
+  { username: "bob", password: "BlueWh@le_1" },
+  { username: "charlie", password: "Ch@rlieBr0wn!" },
+  ...
+];
+```
 
 <br>
 
 **Hardened Code**
 
+`PERN-app/hardened/.env.example`
+```yml
+DB_USER=your_postgres_user
+DB_HOST=db
+DB_NAME=your_database_name
+DB_PASSWORD=your_postgres_password
+DB_PORT=5432
+JWT_SECRET=replace_with_a_long_random_secret
+SEED_USER_PASSWORD=replace_with_a_strong_seed_password
+```
+
+`PERN-app/hardened/backend/src/env.ts`
+```ts
+const getRequiredEnv = (name: string): string => {
+  const value = process.env[name];
+  if (!value || value.trim().length === 0) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+};
+
+export const env = {
+  dbUser: getRequiredEnv("DB_USER"),
+  dbHost: process.env.DB_HOST ?? "db",
+  dbName: getRequiredEnv("DB_NAME"),
+  dbPassword: getRequiredEnv("DB_PASSWORD"),
+  // Default to 5432, not really a secret just added to env for convenience
+  dbPort: Number(process.env.DB_PORT ?? "5432"),
+  jwtSecret: getRequiredEnv("JWT_SECRET"),
+  seedUserPassword: getRequiredEnv("SEED_USER_PASSWORD"),
+};
+```
+
 `PERN-app/hardened/backend/src/index.ts`
 ```ts
-const JWT_SECRET = process.env.JWT_SECRET;
-
-if (!JWT_SECRET) {
-  throw new Error("JWT_SECRET is required");
-}
-
-const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+const JWT_SECRET = env.jwtSecret;
 ```
 
 `PERN-app/hardened/backend/src/db.ts`
 ```ts
 const pool = new Pool({
-  user: process.env.DB_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.DB_PASSWORD,
-  port: Number(process.env.DB_PORT ?? "5432"),
+  user: env.dbUser,
+  host: env.dbHost,
+  database: env.dbName,
+  password: env.dbPassword,
+  port: env.dbPort,
 });
 ```
 
 `PERN-app/hardened/docker-compose.yml`
 ```yml
-services:
-  backend:
-    environment:
-      JWT_SECRET: ${JWT_SECRET}
-      DB_HOST: ${DB_HOST}
-      DB_PORT: ${DB_PORT}
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
-      SEED_USER_PASSWORD: ${SEED_USER_PASSWORD}
+env_file:
+      - .env
 
-  db:
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+POSTGRES_USER: ${DB_USER}
+POSTGRES_PASSWORD: ${DB_PASSWORD}
+POSTGRES_DB: ${DB_NAME}
 ```
 
 `PERN-app/hardened/backend/src/data/users.ts`
 ```ts
-// Non-sensitive seed identities only. No credentials in source control.
 export const usersToSeed = [
   { username: "alice" },
   { username: "bob" },
   { username: "charlie" },
+  ...
 ];
 ```
 
 `PERN-app/hardened/backend/src/index.ts`
 ```ts
-const seedUserPassword = process.env.SEED_USER_PASSWORD;
-if (!seedUserPassword) {
-  throw new Error("SEED_USER_PASSWORD is required for local seed data");
-}
+const seedUserPassword = env.seedUserPassword;
 
 for (const user of usersToSeed) {
   const hashedPassword = await bcrypt.hash(seedUserPassword, SALT_ROUNDS);
-  await query(
-    "INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING",
-    [user.username, hashedPassword]
-  );
+  const seedQuery = {
+    text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
+    values: [user.username, hashedPassword],
+  };
+  await query(seedQuery.text, seedQuery.values);
 }
 ```
 
-This hardened implementation keeps secrets out of source code and image definitions while enabling safer rotation and environment-specific configuration. It also avoids storing seeded account credentials in plaintext source files.
 
 <br>
 
 **Exploiting Vulnerability**
 
-In this vulnerable implementation, hardcoded secrets can be extracted from repository history, image metadata, or leaked config files and then reused for unauthorized access.
+In the vulnerable implementation, hardcoded secrets can be extracted from repository history, image metadata, or leaked config files and then used by an attacker for unauthorized access.
+
+The hardened implementation keeps secrets like the JWT token, DB credentials, and seed user credentials in environment variables. These are stored in a `.env` file that is not tracked, with a corresponding `.env.example` file that is tracked to show what variables are needed. Additionally, an `env.ts` file was added to ensure the app fails quickly when the required variables are not provided.
+
+These variables are then injected in the Docker Compose file and used in the code rather than hardcoded values. Additionally, user seeding logic was changed to use environment variables rather than hardcoded credentials.
+
+While this works fine for local development, in a production app these environment variables would be injected by a secret manager at runtime. This would improve team workflows and security by avoiding storage of sensitive keys or credentials on local devices.
 
 <br>
 
@@ -836,8 +881,16 @@ In this vulnerable implementation, hardcoded secrets can be extracted from repos
 **Vulnerable Code**
 
 - Part 1/3: `PERN-app/vulnerable/frontend/src/services/api.ts` (JWT persisted in `localStorage`)
+```ts
+```
+
 - Part 2/3: `PERN-app/vulnerable/backend/src/index.ts` (missing security headers)
+```ts
+```
+
 - Part 3/3: `PERN-app/vulnerable/backend/src/index.ts` (`/signin` has no brute-force protection)
+```ts
+```
 
 <br>
 
@@ -893,13 +946,14 @@ const apiClient = axios.create({
 });
 ```
 
-This hardened implementation removes token exposure from localStorage, adds browser-facing security headers, and applies sign-in throttling to reduce brute-force and credential-stuffing risk.
-
 <br>
 
 **Exploiting Vulnerability**
 
-In this vulnerable implementation, an attacker can steal auth tokens via XSS, automate credential stuffing without throttling, and exploit missing browser-facing headers to increase attack surface.
+In the vulnerable code, an attacker can steal auth tokens via XSS, automate credential stuffing without throttling, and exploit missing browser-facing headers to increase attack surface.
+
+
+The hardened code removes token exposure from localStorage, adds browser-facing security headers, and applies sign-in throttling to reduce brute-force and credential-stuffing risk.
 
 <br>
 

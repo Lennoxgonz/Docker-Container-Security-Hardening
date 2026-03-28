@@ -1,16 +1,16 @@
 import { Pool, QueryResultRow } from "pg";
+import { env } from "./env";
 
 /**
  * Vulnerability #6 - Hardcoded Secrets and Credentials
- * Part 2/4 - Database credentials hardcoded in backend source code.
- * Secrets are committed in code instead of being injected at deploy time.
+ * Part 2/4 - The hardcoded pool values have been replaced with env variables
  */
 const pool = new Pool({
-  user: "user",
-  host: "db",
-  database: "mydatabase",
-  password: "password",
-  port: 5432,
+  user: env.dbUser,
+  host: env.dbHost,
+  database: env.dbName,
+  password: env.dbPassword,
+  port: env.dbPort,
 });
 
 export const query = <T extends QueryResultRow = QueryResultRow>(

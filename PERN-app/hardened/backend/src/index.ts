@@ -6,16 +6,15 @@ import { query } from "./db";
 import * as userService from "./user-service";
 import { usersToSeed } from "./data/users";
 import { parseSearchTerm, parseSigninPayload, parseSignupPayload } from "./types/dto";
+import { env } from "./env";
 
 const SALT_ROUNDS = 12;
 
 /**
  * Vulnerability #6 - Hardcoded Secrets and Credentials
- * Part 1/4 - JWT signing secret is hardcoded in backend source.
- * If this value leaks, attackers can forge valid tokens.
+ * Part 1/4 - The hardcoded JWT secret has been replaced with an env variable
  */
-const JWT_SECRET =
-  "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
+const JWT_SECRET = env.jwtSecret;
 
 declare global {
   namespace Express {
@@ -184,10 +183,7 @@ const startServer = async () => {
      * Vulnerability #1 - Insecure Password Hashing
      * Part 3/3 - MD5 has been replaced with bcrypt for seed user credentials.
      */
-    const seedUserPassword = process.env.SEED_USER_PASSWORD;
-    if (!seedUserPassword) {
-      throw new Error("SEED_USER_PASSWORD is required for local seed data");
-    }
+    const seedUserPassword = env.seedUserPassword;
 
     for (const user of usersToSeed) {
       const hashedPassword = await bcrypt.hash(seedUserPassword, SALT_ROUNDS);

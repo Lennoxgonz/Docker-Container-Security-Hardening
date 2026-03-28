@@ -28,6 +28,8 @@ services:
       # Part 1/1 - Backend Docker socket mount removed.
       - ./backend:/usr/src/app:ro
       - /usr/src/app/node_modules
+    env_file:
+      - .env
     depends_on:
       - db
     networks:
@@ -40,10 +42,10 @@ services:
     image: postgres:17.5-bookworm
     environment:
       # Vulnerability #6 - Hardcoded Secrets and Credentials
-      # Part 3/4 - Postgres credentials stored as plaintext in compose.
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: mydatabase
+      # Part 3/4 - Postgres credentials injected from environment variables.
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     # Vulnerability #4 - Overexposed Container Networking and Service Ports
     # Part 3/5 - Database port is no longer published to host.
     expose:
