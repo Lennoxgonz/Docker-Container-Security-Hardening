@@ -2,6 +2,9 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import { query } from "./db";
 import * as userService from "./user-service";
 import { usersToSeed } from "./data/users";
@@ -15,6 +18,8 @@ const SALT_ROUNDS = 12;
  * Part 1/4 - The hardcoded JWT secret has been replaced with an env variable
  */
 const JWT_SECRET = env.jwtSecret;
+const AUTH_COOKIE_NAME = "auth_token";
+const isProduction = env.nodeEnv === "production";
 
 declare global {
   namespace Express {
@@ -41,14 +46,28 @@ const corsOptions = {
       callback(new Error("Not allowed by CORS"));
     }
   },
+  credentials: true,
 };
 
 app.use(cors(corsOptions));
 /**
  * Vulnerability #7 - Missing Auth/API Hardening Controls
- * Part 2/3 - Basic security headers middleware is missing (helmet/CSP/HSTS/frameguard).
+ * Part 2/3 - Basic security headers middleware is now enabled with Helmet.
  */
+app.use(helmet());
+app.use(cookieParser());
 app.use(express.json());
+
+/**
+ * Vulnerability #7 - Missing Auth/API Hardening Controls
+ * Part 3/3 - Sign-in route now uses rate limiting to reduce brute-force attempts.
+ */
+const signinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 app.post("/signup", async (req: Request, res: Response) => {
   const signupPayload = parseSignupPayload(req.body);
@@ -67,12 +86,7 @@ app.post("/signup", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/signin", async (req: Request, res: Response) => {
-  /**
-   * Vulnerability #7 - Missing Auth/API Hardening Controls
-   * Part 3/3 - No brute-force protection on signin.
-   * This route has no rate limit, lockout, or backoff.
-   */
+app.post("/signin", signinLimiter, async (req: Request, res: Response) => {
   const signinPayload = parseSigninPayload(req.body);
   if (!signinPayload) {
     return res.status(400).json({ message: "Invalid credentials payload" });
@@ -83,9 +97,14 @@ app.post("/signin", async (req: Request, res: Response) => {
     if (user) {
       const payload = { id: user.id, username: user.username };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      res.cookie(AUTH_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "strict",
+        maxAge: 60 * 60 * 1000,
+      });
       res.status(200).json({
         message: "Sign in successful",
-        token: token,
         user: { id: user.id, username: user.username },
       });
     } else {
@@ -96,27 +115,39 @@ app.post("/signin", async (req: Request, res: Response) => {
   }
 });
 
+app.post("/signout", (_req: Request, res: Response) => {
+  res.clearCookie(AUTH_COOKIE_NAME, {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "strict",
+  });
+  res.status(200).json({ message: "Sign out successful" });
+});
+
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
+  const token = req.cookies?.[AUTH_COOKIE_NAME];
 
   if (token == null) {
     return res.status(401).json({ message: "Authentication token required" });
   }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+  jwt.verify(
+    token,
+    JWT_SECRET,
+    (err: jwt.VerifyErrors | null, user: string | JwtPayload | undefined) => {
     if (err) {
       return res.status(403).json({ message: "Invalid or expired token" });
     }
 
-    const verifiedUser = user as JwtPayload & { id?: number; username?: string };
-    if (typeof verifiedUser.id !== "number" || typeof verifiedUser.username !== "string") {
-      return res.status(403).json({ message: "Invalid token payload" });
-    }
+      const verifiedUser = user as JwtPayload & { id?: number; username?: string };
+      if (typeof verifiedUser.id !== "number" || typeof verifiedUser.username !== "string") {
+        return res.status(403).json({ message: "Invalid token payload" });
+      }
 
-    req.user = { id: verifiedUser.id, username: verifiedUser.username };
-    next();
-  });
+      req.user = { id: verifiedUser.id, username: verifiedUser.username };
+      next();
+    }
+  );
 };
 
 app.get("/search", authenticateToken, async (req: Request, res: Response) => {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { getMainPageData } from "../services/api";
+import { getMainPageData, signOut } from "../services/api";
 import type { User } from "../types/user";
 
 const Header = (): React.ReactNode => {
@@ -35,8 +35,13 @@ const Header = (): React.ReactNode => {
     };
   }, []);
 
-  const handleSignOut = () => {
-    localStorage.removeItem("token");
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch {
+      // Continue local sign-out flow even if API sign-out fails.
+    }
+
     setCurrentUser(null);
     navigate("/signin");
   };

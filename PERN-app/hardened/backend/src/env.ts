@@ -15,4 +15,5 @@ export const env = {
   dbPort: Number(process.env.DB_PORT ?? "5432"),
   jwtSecret: getRequiredEnv("JWT_SECRET"),
   seedUserPassword: getRequiredEnv("SEED_USER_PASSWORD"),
+  nodeEnv: process.env.NODE_ENV ?? "development",
 };
