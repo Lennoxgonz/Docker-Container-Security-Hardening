@@ -1,11 +1,13 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import jwt, { JwtPayload } from "jsonwebtoken";
-import crypto from "crypto";
+import bcrypt from "bcrypt";
 import { query } from "./db";
 import * as userService from "./user-service";
 import { usersToSeed } from "./data/users";
 import { parseSearchTerm, parseSigninPayload, parseSignupPayload } from "./types/dto";
+
+const SALT_ROUNDS = 12;
 
 /**
  * Vulnerability #6 - Hardcoded Secrets and Credentials
@@ -178,17 +180,18 @@ const startServer = async () => {
 
     /**
      * Vulnerability #1 - Insecure Password Hashing
-     * Part 3/3 - Sample users are seeded with MD5.
-     * Seed credentials use MD5, matching insecure login hashing.
+     * Part 3/3 - MD5 has been replaced with bcrypt for seed user credentials.
      */
+    const seedUserPassword = process.env.SEED_USER_PASSWORD;
+    if (!seedUserPassword) {
+      throw new Error("SEED_USER_PASSWORD is required for local seed data");
+    }
+
     for (const user of usersToSeed) {
-      const md5Hash = crypto
-        .createHash("md5")
-        .update(user.password)
-        .digest("hex");
+      const hashedPassword = await bcrypt.hash(seedUserPassword, SALT_ROUNDS);
       const seedQuery = {
         text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
-        values: [user.username, md5Hash],
+        values: [user.username, hashedPassword],
       };
       await query(seedQuery.text, seedQuery.values);
     }

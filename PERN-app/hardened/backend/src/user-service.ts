@@ -1,30 +1,33 @@
 import { query } from "./db";
 import { AuthCredentialsDto } from "./types/dto";
-import crypto from "crypto";
+import bcrypt from "bcrypt";
+
+const SALT_ROUNDS = 12;
 
 export const createUser = async (newUser: AuthCredentialsDto) => {
   /**
    * Vulnerability #1 - Insecure Password Hashing
-   * Part 1/3 - Account creation hashes passwords with MD5.
-   * MD5 is fast and easily cracked with modern hardware.
+   * Part 1/3 - MD5 has been replaced with bcrypt.
    */
   const { username, password } = newUser;
-  const md5Hash = crypto.createHash("md5").update(password).digest("hex");
-  const sql = "INSERT INTO users (username, password) VALUES ($1, $2)";
-  return query(sql, [username, md5Hash]);
+  const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+  return query("INSERT INTO users (username, password) VALUES ($1, $2)", [
+    username,
+    hashedPassword,
+  ]);
 };
 
 export const findUser = async (credentials: AuthCredentialsDto) => {
   /**
    * Vulnerability #1 - Insecure Password Hashing
-   * Part 2/3 - Signin verification compares MD5-hashed credentials.
-   * Fast hashing enables high-speed offline guessing attacks.
+   * Part 2/3 - MD5 has been replaced with bcrypt.
    */
   const { username, password } = credentials;
-  const md5Hash = crypto.createHash("md5").update(password).digest("hex");
-  const sql = "SELECT * FROM users WHERE username = $1 AND password = $2";
-  const result = await query(sql, [username, md5Hash]);
-  return result.rows[0];
+  const result = await query("SELECT * FROM users WHERE username = $1", [
+    username,
+  ]);
+  const user = result.rows[0];
+  return user && (await bcrypt.compare(password, user.password)) ? user : null;
 };
 
 /**

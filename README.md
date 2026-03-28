@@ -262,16 +262,18 @@ This is a sample web application using Express.js with a PostgreSQL database for
 - Part 1/3 and Part 2/3: `PERN-app/vulnerable/backend/src/user-service.ts` (`createUser` and `findUser`)
 - Part 3/3: `PERN-app/vulnerable/backend/src/index.ts` (seed user hashing in `startServer`)
 
+<br>
+
 `PERN-app/vulnerable/backend/src/user-service.ts`
-```
-export const createUser = async (newUser: User) => {
+```ts
+export const createUser = async (newUser: AuthCredentialsDto) => {
   const { username, password } = newUser;
   const md5Hash = crypto.createHash("md5").update(password).digest("hex");
   const sql = "INSERT INTO users (username, password) VALUES ($1, $2)";
   return query(sql, [username, md5Hash]);
 };
 
-export const findUser = async (credentials: User) => {
+export const findUser = async (credentials: AuthCredentialsDto) => {
   const { username, password } = credentials;
   const md5Hash = crypto.createHash("md5").update(password).digest("hex");
   const sql = "SELECT * FROM users WHERE username = $1 AND password = $2";
@@ -280,18 +282,31 @@ export const findUser = async (credentials: User) => {
 };
 ```
 
+`PERN-app/vulnerable/backend/src/index.ts`
+```ts
+for (const user of usersToSeed) {
+  const md5Hash = crypto
+    .createHash("md5")
+    .update(user.password)
+    .digest("hex");
+  const seedQuery = {
+    text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
+    values: [user.username, md5Hash],
+  };
+  await query(seedQuery.text, seedQuery.values);
+}
+```
 <br>
 
 **Hardened Code**
 
 `PERN-app/hardened/backend/src/user-service.ts`  
-`PERN-app/hardened/backend/src/index.ts`
-
 ```ts
 import bcrypt from "bcrypt";
+
 const SALT_ROUNDS = 12;
 
-export const createUser = async (newUser: User) => {
+export const createUser = async (newUser: AuthCredentialsDto) => {
   const { username, password } = newUser;
   const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
   return query("INSERT INTO users (username, password) VALUES ($1, $2)", [
@@ -300,7 +315,7 @@ export const createUser = async (newUser: User) => {
   ]);
 };
 
-export const findUser = async (credentials: User) => {
+export const findUser = async (credentials: AuthCredentialsDto) => {
   const { username, password } = credentials;
   const result = await query("SELECT * FROM users WHERE username = $1", [
     username,
@@ -308,23 +323,33 @@ export const findUser = async (credentials: User) => {
   const user = result.rows[0];
   return user && (await bcrypt.compare(password, user.password)) ? user : null;
 };
+```
+`PERN-app/hardened/backend/src/index.ts`
+```ts
+const seedUserPassword = process.env.SEED_USER_PASSWORD;
+if (!seedUserPassword) {
+  throw new Error("SEED_USER_PASSWORD is required for local seed data");
+}
 
 for (const user of usersToSeed) {
-  const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
-  await query(
-    "INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING",
-    [user.username, hashedPassword]
-  );
+  const hashedPassword = await bcrypt.hash(seedUserPassword, SALT_ROUNDS);
+  const seedQuery = {
+    text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
+    values: [user.username, hashedPassword],
+  };
+  await query(seedQuery.text, seedQuery.values);
 }
 ```
 
-This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare`.
+
 
 <br>
 
 **Exploiting Vulnerability**
 
-In this vulnerable implementation, MD5 is fast and unsalted, so attackers can crack password hashes quickly with offline brute-force or rainbow tables.
+In the vulnerable version, MD5 is used as the hashing algorithm for user credentials during signup, signin, and seed user creation. MD5 is fast and unsalted, so attackers can crack password hashes quickly with offline brute-force or rainbow tables.
+
+This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare`. It also seeds the seed user data with bcrypt to match. In addition, since the user credentials are no longer hard coded it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
 
 <br>
 
