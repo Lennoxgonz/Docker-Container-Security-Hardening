@@ -341,44 +341,83 @@ for (const user of usersToSeed) {
 }
 ```
 
-
-
 <br>
 
 **Exploiting Vulnerability**
 
 In the vulnerable version, MD5 is used as the hashing algorithm for user credentials during signup, signin, and seed user creation. MD5 is fast and unsalted, so attackers can crack password hashes quickly with offline brute-force or rainbow tables.
 
+<br>
+
 This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare`. It also seeds the seed user data with bcrypt to match. In addition, since the user credentials are no longer hard coded it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
 
 <br>
 
-#### Vulnerability #2 - SQL Injection 
+#### Vulnerability #2 - SQL Injection + User Scraping
 
 ---
 
 **Vulnerable Code**
 
 - Part 1/1: `PERN-app/vulnerable/backend/src/user-service.ts` (`searchUsers`)
+
+<br>
+
+`PERN-app/vulnerable/backend/src/user-service.ts`
+```ts
+export const searchUsers = async (searchTerm: string) => {
+  const sql = `SELECT id, username FROM users WHERE username LIKE '%${searchTerm}%'`;
+  const result = await query(sql);
+  return result.rows;
+};
+```
 <br>
 
 **Hardened Code**
 
+`PERN-app/hardened/backend/src/user-service.ts`
 ```ts
 export const searchUsers = async (searchTerm: string) => {
-  const sql = "SELECT id, username FROM users WHERE username LIKE $1";
-  const values = [`%${searchTerm}%`];
-  const result = await query(sql, values);
+  const normalizedSearchTerm = searchTerm.trim();
+  if (normalizedSearchTerm.length < 3) {
+    return [];
+  }
+
+  const escapedSearchTerm = normalizedSearchTerm.replace(/[\\%_]/g, "\\$&");
+
+  const sql = `
+    SELECT id, username
+    FROM users
+    WHERE username ILIKE $1
+    ESCAPE '\\'
+    ORDER BY username
+    LIMIT 20
+  `;
+  const result = await query(sql, [`${escapedSearchTerm}%`]);
   return result.rows;
 };
 ```
 
-This hardened implementation uses a parameterized query, so user input is treated as data rather than executable SQL.
 <br>
 
 **Exploiting Vulnerability**
 
-In this vulnerable implementation, attackers can inject SQL operators into the search term to change query logic and potentially enumerate unintended user data.
+In this vulnerable implementation, the search term is directly concatenated into SQL (`WHERE username LIKE '%${searchTerm}%'`). That allows attackers to inject SQL syntax into the query text (for example, `' OR 1=1 --`) and alter the query behavior.
+
+There are also no controls against broad enumeration. Very short terms (like a single character) can return large user lists, making user scraping easier.
+
+<br>
+
+This hardened implementation uses a parameterized query, so user input is handled as data rather than executable SQL.
+
+It also adds controls to reduce scraping from broad probes: a `trim()` + minimum length check rejects short or empty search terms.
+
+`LIMIT 20` caps returned rows, and `ORDER BY username` makes responses deterministic. The query uses a prefix pattern (`${escapedSearchTerm}%`) instead of a contains pattern (`%term%`) to reduce accidental overexposure.
+
+`normalizedSearchTerm.replace(/[\\%_]/g, "\\$&")` is used with `ESCAPE '\\'` so user-provided `%` and `_` are treated literally rather than as wildcards.
+
+Escaping backslashes in user input is also important because backslash is the SQL LIKE escape character in this query. Without escaping it, a trailing `\` could change how the appended `%` is interpreted.
+
 <br>
 
 #### Vulnerability #3 - Insecure Direct Object Reference

@@ -31,14 +31,29 @@ export const findUser = async (credentials: AuthCredentialsDto) => {
 };
 
 /**
- * Vulnerability #2 - SQL Injection
- * Part 1/1 - Dynamic SQL string interpolation in search query.
- * User input is concatenated directly into SQL text.
- * Crafted input can alter query behavior.
+ * Vulnerability #2 - SQL Injection + User Scraping
+ * Part 1/1 - Search now uses a parameterized query and bounded results.
+ * Input is trimmed, short probes are rejected, and LIKE wildcards are escaped
+ * so user input is handled as search data rather than query control input.
  */
 export const searchUsers = async (searchTerm: string) => {
-  const sql = `SELECT id, username FROM users WHERE username LIKE '%${searchTerm}%'`;
-  const result = await query(sql);
+  const normalizedSearchTerm = searchTerm.trim();
+  if (normalizedSearchTerm.length < 3) {
+    return [];
+  }
+
+  // Escape SQL LIKE wildcards so user input cannot widen search scope.
+  const escapedSearchTerm = normalizedSearchTerm.replace(/[\\%_]/g, "\\$&");
+
+  const sql = `
+    SELECT id, username
+    FROM users
+    WHERE username ILIKE $1
+    ESCAPE '\\'
+    ORDER BY username
+    LIMIT 20
+  `;
+  const result = await query(sql, [`${escapedSearchTerm}%`]);
   return result.rows;
 };
 
