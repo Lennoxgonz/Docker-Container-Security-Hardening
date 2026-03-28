@@ -20,6 +20,10 @@ For every app in this repository, `vulnerable` is the baseline and `hardened` is
 
 `cd PERN-app/hardened`
 
+`cp .env.example .env`
+
+Populate `.env` with real values for all required variables (`DB_USER`, `DB_NAME`, `DB_PASSWORD`, `JWT_SECRET`, and `SEED_USER_PASSWORD`) before starting containers.
+
 `docker compose up`
 
 ### Flask App (Single Docker File)

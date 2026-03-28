@@ -174,6 +174,7 @@ const startServer = async () => {
       );
     `;
     await query(createTableQuery);
+    // Reset the users table to clear any existing users for demo
     await query("TRUNCATE TABLE users RESTART IDENTITY;");
 
     /**
