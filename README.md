@@ -349,7 +349,7 @@ In the vulnerable version, MD5 is used as the hashing algorithm for user credent
 
 <br>
 
-This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare`(Part 1/2). It also seeds the seed user data with bcrypt to match(Part 3). In addition, since the user credentials are no longer hard coded it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
+This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare` (Part 1/2). It also seeds the seed user data with bcrypt to match (Part 3). In addition, since the user credentials are no longer hard coded, it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
 
 <br>
 
@@ -652,15 +652,15 @@ volumes:
 
 The vulnerable version has various security issues.
 
-Part 1/5 - The database is on the same network as the frontend. The frontend is internet facing and has a larger attack surface (npm dependancies and JS tooling). So this uneccesarily exposes the database to these risks as if an attacker compromises the frontend they will then be on the database network.
+Part 1/5 - The database is on the same network as the frontend. The frontend is internet facing and has a larger attack surface (npm dependencies and JS tooling). So this unnecessarily exposes the database to these risks as if an attacker compromises the frontend they will then be on the database network.
 
-Part 2/5 - The backend is on one flat network with everything. In a flat network compromise of any service give attackers lateral movement across services.
+Part 2/5 - The backend is on one flat network with everything. In a flat network compromise of any service gives attackers lateral movement across services.
 
-Part 4/5 (Skipping 3 as 1,2, and 4 are very related) - Database is attached to a shared app network this allows more communication to the database then neccessary.
+Part 4/5 (Skipping 3 as 1, 2, and 4 are very related) - Database is attached to a shared app network this allows more communication to the database than necessary.
 
-Part 3/5 - The database is published to host, this exposes the database beyond internal app use. So any process or user on host can attempt DB access
+Part 3/5 - The database is published to host, this exposes the database beyond internal app use. So any process or user on host can attempt DB access.
 
-Part 5/5 - There is a single central network, flat network topology like this allows one security breach to cascade across services
+Part 5/5 - There is a single central network, flat network topology like this allows one security breach to cascade across services.
 
 This hardened code addresses Vulnerability #4 only (network segmentation and database port exposure). Vulnerability #5 and Vulnerability #6 are intentionally unchanged here and are remediated in their dedicated sections.
 
@@ -668,11 +668,11 @@ This hardened code addresses Vulnerability #4 only (network segmentation and dat
 
 The hardened Docker Compose file has multiple fixes for these issues.
 
-First, network segmentation is added `public-network` and `private-network` is used, and the private network is set to private/internal `private-network.internal: true`. This directly resolve Part 5/5 and allows for part 1,2, and 4 to be solved.
+First, network segmentation is added `public-network` and `private-network` are used, and the private network is set to private/internal `private-network.internal: true`. This directly resolves Part 5/5 and allows for part 1, 2, and 4 to be solved.
 
-Second, the frontend is assigned to `public-network`, backend to `public-network and `private-network`, and db to `private-network`. This addresses Part 1, 2, and 4.
+Second, the frontend is assigned to `public-network`, backend to `public-network` and `private-network`, and db to `private-network`. This addresses Part 1, 2, and 4.
 
-Lastly, the host db exposure is addressed by replacing `ports: "5432:5432"` with `expose: "5432"`. This allows the db to accessed by interal app traffic, but not host or external paths. This resolves Part 3/5
+Lastly, the host db exposure is addressed by replacing `ports: "5432:5432"` with `expose: "5432"`. This allows the db to be accessed by internal app traffic, but not host or external paths. This resolves Part 3/5.
 
 <br>
 
@@ -682,29 +682,58 @@ Lastly, the host db exposure is addressed by replacing `ports: "5432:5432"` with
 
 **Vulnerable Code**
 
-- Part 1/1: `PERN-app/vulnerable/docker-compose.yml` (`/var/run/docker.sock:/var/run/docker.sock`)
+- Part 1/1: `PERN-app/vulnerable/docker-compose.yml` 
+
+<br>
+
+PERN-app/vulnerable/docker-compose.yml
+```yml
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+    # Exposed for local demo access
+      - "3000:3000"
+    volumes:
+      # Vulnerability #5 - Exposed Docker Socket
+      # Part 1/1 - Backend container mounts host Docker socket directly.
+      - /var/run/docker.sock:/var/run/docker.sock
+
+      - ./backend:/usr/src/app:ro
+      - /usr/src/app/node_modules
+```
+
 <br>
 
 **Hardened Code**
 
 ```yml
-services:
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    # No Docker socket mount.
+    ports:
+    # Exposed for local demo access
+      - "3000:3000"
     volumes:
-      - ./backend:/usr/src/app
+      # Vulnerability #5 - Exposed Docker Socket
+      # Part 1/1 - Backend Docker socket mount removed.
+
+      - ./backend:/usr/src/app:ro
       - /usr/src/app/node_modules
 ```
 
-This hardened implementation removes the Docker socket bind mount entirely, because application containers should not control the host Docker daemon.
 <br>
 
 **Exploiting Vulnerability**
 
-In this vulnerable implementation, if an attacker gains code execution in the backend container, access to the Docker socket can allow control over the host Docker daemon.
+In this vulnerable implementation the container is given access to the docker daemon with (`/var/run/docker.sock:/var/run/docker.sock`), if an attacker gains code execution in the backend container, access to the Docker socket can allow control over the host Docker daemon. If remote code execution happens an attacker can read secrets and effectively escalate to compromising the host.
+
+<br>
+
+This hardened implementation removes the Docker socket bind mount entirely, because application containers should not control the host Docker daemon. Removing this mount prevents an attacker who compromises the backend from using Docker API to gain further access to the host/infrastructure.
+
 <br>
 
 #### Vulnerability #6 - Hardcoded Secrets and Credentials

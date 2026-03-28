@@ -4,6 +4,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     ports:
+      # Exposed for local demo access
       - "5173:5173"
     volumes:
       - ./frontend:/usr/src/app:ro
@@ -20,11 +21,11 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
+    # Exposed for local demo access
       - "3000:3000"
     volumes:
-      # Vulnerability #5 - Backend container mounts host Docker socket directly - Out of scope here, addressed in its own section
-      - /var/run/docker.sock:/var/run/docker.sock
-
+      # Vulnerability #5 - Exposed Docker Socket
+      # Part 1/1 - Backend Docker socket mount removed.
       - ./backend:/usr/src/app:ro
       - /usr/src/app/node_modules
     depends_on:
@@ -38,7 +39,8 @@ services:
   db:
     image: postgres:17.5-bookworm
     environment:
-      # Vulnerability #6 - Postgres credentials stored as plaintext in compose - Out of scope here, addressed in its own section
+      # Vulnerability #6 - Hardcoded Secrets and Credentials
+      # Part 3/4 - Postgres credentials stored as plaintext in compose.
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
       POSTGRES_DB: mydatabase
