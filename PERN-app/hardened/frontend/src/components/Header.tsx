@@ -11,8 +11,11 @@ const Header = (): React.ReactNode => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadSessionUser = async () => {
+    const loadSessionUser = async (isInitialCheck = false) => {
       try {
+        if (isInitialCheck && isMounted) {
+          setIsCheckingAuth(true);
+        }
         const data = await getMainPageData();
         if (isMounted) {
           setCurrentUser(data.user);
@@ -22,16 +25,22 @@ const Header = (): React.ReactNode => {
           setCurrentUser(null);
         }
       } finally {
-        if (isMounted) {
+        if (isInitialCheck && isMounted) {
           setIsCheckingAuth(false);
         }
       }
     };
 
-    loadSessionUser();
+    const handleAuthStateChanged = () => {
+      void loadSessionUser(false);
+    };
+
+    void loadSessionUser(true);
+    window.addEventListener("auth-state-changed", handleAuthStateChanged);
 
     return () => {
       isMounted = false;
+      window.removeEventListener("auth-state-changed", handleAuthStateChanged);
     };
   }, []);
 

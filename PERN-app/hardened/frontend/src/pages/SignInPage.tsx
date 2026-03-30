@@ -17,6 +17,7 @@ const SignInPage = (): React.ReactNode => {
 
     try {
       await signIn(credentials);
+      window.dispatchEvent(new Event("auth-state-changed"));
       navigate("/main");
     } catch (error: unknown) {
       const message =

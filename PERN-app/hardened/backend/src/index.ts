@@ -54,9 +54,9 @@ app.use(cors(corsOptions));
  * Vulnerability #7 - Missing Auth/API Hardening Controls
  * Part 2/3 - Basic security headers middleware is now enabled with Helmet.
  */
-app.use(helmet());
-app.use(cookieParser());
-app.use(express.json());
+app.use(helmet()); // Adds security headers to the response
+app.use(cookieParser()); // Parses cookies from the request and adds them to the request object
+app.use(express.json()); // Parses JSON request bodies and adds them to the request object
 
 
 

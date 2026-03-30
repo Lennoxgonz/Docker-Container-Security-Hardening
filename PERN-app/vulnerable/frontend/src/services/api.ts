@@ -48,6 +48,8 @@ export const signUp = async (credentials: Credentials) => {
 };
 
 export const signIn = async (credentials: Credentials) => {
+  // Vulnerability #7 - Missing Auth/API Hardening Controls
+  // Token is stored in localStorage upon signin
   const { data } = await apiClient.post("/signin", credentials);
   localStorage.setItem("token", data.token);
   return data;
