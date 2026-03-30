@@ -82,6 +82,8 @@ app.post("/signin", async (req: Request, res: Response) => {
     if (user) {
       const payload = { id: user.id, username: user.username };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      // Vulnerability #7 - Missing Auth/API Hardening Controls
+      // JWT is returned in JSON, so frontend JavaScript can persist/read it.
       res.status(200).json({
         message: "Sign in successful",
         token: token,
@@ -96,6 +98,8 @@ app.post("/signin", async (req: Request, res: Response) => {
 });
 
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  // Vulnerability #7 - Missing Auth/API Hardening Controls
+  // API trusts a bearer token provided by client-side JavaScript.
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 

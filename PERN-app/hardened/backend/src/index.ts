@@ -58,16 +58,7 @@ app.use(helmet());
 app.use(cookieParser());
 app.use(express.json());
 
-/**
- * Vulnerability #7 - Missing Auth/API Hardening Controls
- * Part 3/3 - Sign-in route now uses rate limiting to reduce brute-force attempts.
- */
-const signinLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 5,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
+
 
 app.post("/signup", async (req: Request, res: Response) => {
   const signupPayload = parseSignupPayload(req.body);
@@ -86,6 +77,17 @@ app.post("/signup", async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * Vulnerability #7 - Missing Auth/API Hardening Controls
+ * Part 3/3 - Sign-in route now uses rate limiting to reduce brute-force attempts. 5 attempts per 15 minutes.
+ */
+const signinLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 app.post("/signin", signinLimiter, async (req: Request, res: Response) => {
   const signinPayload = parseSigninPayload(req.body);
   if (!signinPayload) {
@@ -97,6 +99,8 @@ app.post("/signin", signinLimiter, async (req: Request, res: Response) => {
     if (user) {
       const payload = { id: user.id, username: user.username };
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      // Vulnerability #7 - Missing Auth/API Hardening Controls
+      // JWT is set as an HttpOnly cookie (not exposed to frontend JS).
       res.cookie(AUTH_COOKIE_NAME, token, {
         httpOnly: true,
         secure: isProduction,
@@ -125,6 +129,8 @@ app.post("/signout", (_req: Request, res: Response) => {
 });
 
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
+  // Vulnerability #7 - Missing Auth/API Hardening Controls
+  // auth middleware reads token from signed-in browser cookie.
   const token = req.cookies?.[AUTH_COOKIE_NAME];
 
   if (token == null) {

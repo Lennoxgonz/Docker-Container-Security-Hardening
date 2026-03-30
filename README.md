@@ -10,13 +10,13 @@ For every app in this repository, `vulnerable` is the baseline and `hardened` is
 
 ### PERN App (Docker Compose)
 
-* Building and running vulnerable version.
+- Building and running vulnerable version.
 
 `cd PERN-app/vulnerable`
 
 `docker compose up`
 
-* Building and running hardened version with vulnerability fixes.
+- Building and running hardened version with vulnerability fixes.
 
 `cd PERN-app/hardened`
 
@@ -28,7 +28,7 @@ Populate `.env` with real values for all required variables (`DB_USER`, `DB_NAME
 
 ### Flask App (Single Docker File)
 
-* Building and running vulnerable version.
+- Building and running vulnerable version.
 
 `cd flask-app/vulnerable`
 
@@ -36,7 +36,7 @@ Populate `.env` with real values for all required variables (`DB_USER`, `DB_NAME
 
 `docker run -d -p 5000:5000 --name vulnerable-container vulnerable-app`
 
-* Building and running hardened version with vulnerability fixes.
+- Building and running hardened version with vulnerability fixes.
 
 `cd flask-app/hardened`
 
@@ -46,14 +46,15 @@ Populate `.env` with real values for all required variables (`DB_USER`, `DB_NAME
 
 To execute exploits, review why they are dangerous, and see the corresponding solutions. Check the section for the specific app you built and ran.
 
-<br>
-<br>
+  
+  
+
 
 ## Vulnerabilities Per App
 
 ### PERN App
 
-This is a sample web application using Express.js with a PostgreSQL database for the backend and React for the frontend.
+This is a sample web application using PostgreSQL for the database, Express for the backend, React for the frontend and Node as the runtime.
 
 #### Vulnerability #1 - Insecure Password Hashing
 
@@ -64,9 +65,11 @@ This is a sample web application using Express.js with a PostgreSQL database for
 - Part 1/3 and Part 2/3: `PERN-app/vulnerable/backend/src/user-service.ts` (`createUser` and `findUser`)
 - Part 3/3: `PERN-app/vulnerable/backend/src/index.ts` (seed user hashing in `startServer`)
 
-<br>
+  
+
 
 `PERN-app/vulnerable/backend/src/user-service.ts`
+
 ```ts
 export const createUser = async (newUser: AuthCredentialsDto) => {
   const { username, password } = newUser;
@@ -85,6 +88,7 @@ export const findUser = async (credentials: AuthCredentialsDto) => {
 ```
 
 `PERN-app/vulnerable/backend/src/index.ts`
+
 ```ts
 for (const user of usersToSeed) {
   const md5Hash = crypto
@@ -98,11 +102,14 @@ for (const user of usersToSeed) {
   await query(seedQuery.text, seedQuery.values);
 }
 ```
-<br>
+
+  
+
 
 **Hardened Code**
 
 `PERN-app/hardened/backend/src/user-service.ts`  
+
 ```ts
 import bcrypt from "bcrypt";
 
@@ -128,6 +135,7 @@ export const findUser = async (credentials: AuthCredentialsDto) => {
 ```
 
 `PERN-app/hardened/backend/src/index.ts`
+
 ```ts
 const seedUserPassword = env.seedUserPassword;
 
@@ -141,17 +149,20 @@ for (const user of usersToSeed) {
 }
 ```
 
-<br>
+  
+
 
 **Exploiting Vulnerability**
 
-In the vulnerable version, MD5 is used as the hashing algorithm for user credentials during signup, signin, and seed user creation. MD5 is fast and unsalted, so attackers can crack password hashes quickly with offline brute-force or rainbow tables.
+In the vulnerable version, MD5 is used as the hashing algorithm for user credentials during signup, signin, and seed user creation. MD5 is fast, which allows millions or billions of guesses per second during offline attacks. Additionally, it is unsalted, so no unique random value is added per user. This means two users with the same password will have the same hash. As a result, attackers can use rainbow tables and reuse cracking work across many accounts. If attackers gain access to stored hashes in any way, they can crack them quickly, and once one hash is cracked, that password is known anywhere the same hash appears.
 
-<br>
+  
+
 
 This hardened implementation replaces fast unsalted hashing with bcrypt and verifies credentials using `bcrypt.compare` (Part 1/2). It also seeds the seed user data with bcrypt to match (Part 3). In addition, since the user credentials are no longer hard coded, it pulls the password from an env variable. This is further explained in Vulnerability #6 - Part 4.
 
-<br>
+  
+
 
 #### Vulnerability #2 - SQL Injection + User Scraping
 
@@ -161,9 +172,11 @@ This hardened implementation replaces fast unsalted hashing with bcrypt and veri
 
 - Part 1/1: `PERN-app/vulnerable/backend/src/user-service.ts` (`searchUsers`)
 
-<br>
+  
+
 
 `PERN-app/vulnerable/backend/src/user-service.ts`
+
 ```ts
 export const searchUsers = async (searchTerm: string) => {
   const sql = `SELECT id, username FROM users WHERE username LIKE '%${searchTerm}%'`;
@@ -171,11 +184,14 @@ export const searchUsers = async (searchTerm: string) => {
   return result.rows;
 };
 ```
-<br>
+
+  
+
 
 **Hardened Code**
 
 `PERN-app/hardened/backend/src/user-service.ts`
+
 ```ts
 export const searchUsers = async (searchTerm: string) => {
   const normalizedSearchTerm = searchTerm.trim();
@@ -198,7 +214,8 @@ export const searchUsers = async (searchTerm: string) => {
 };
 ```
 
-<br>
+  
+
 
 **Exploiting Vulnerability**
 
@@ -206,7 +223,8 @@ In this vulnerable implementation, the search term is directly concatenated into
 
 There are also no controls against broad enumeration. Very short terms (like a single character) can return large user lists, making user scraping easier.
 
-<br>
+  
+
 
 This hardened implementation uses a parameterized query, so user input is handled as data rather than executable SQL.
 
@@ -218,7 +236,8 @@ It also adds controls to reduce scraping from broad probes: a `trim()` + minimum
 
 Escaping backslashes in user input is also important because backslash is the SQL LIKE escape character in this query. Without escaping it, a trailing `\` could change how the appended `%` is interpreted.
 
-<br>
+  
+
 
 #### Vulnerability #3 - Insecure Direct Object Reference
 
@@ -228,9 +247,11 @@ Escaping backslashes in user input is also important because backslash is the SQ
 
 - Part 1/1: `PERN-app/vulnerable/backend/src/index.ts` (`/profile/:id`)
 
-<br>
+  
+
 
 `PERN-app/vulnerable/backend/src/index.ts`
+
 ```ts
 app.get(
   "/profile/:id",
@@ -252,11 +273,13 @@ app.get(
 );
 ```
 
-<br>
+  
+
 
 **Hardened Code**
 
 `PERN-app/hardened/backend/src/index.ts`
+
 ```ts
 app.get(
   "/profile/:id",
@@ -282,17 +305,19 @@ app.get(
 );
 ```
 
-<br>
+  
+
 
 **Exploiting Vulnerability**
 
 In this vulnerable implementation, an authenticated user can modify the profile ID in the URL and access another user's profile data.
 
-<br>
+  
+
 
 This hardened implementation enforces object-level authorization by requiring the requested profile ID to match the authenticated user's ID (`if (!req.user || req.user.id !== profileIdToView)`).
 
-<br>
+  
 
 
 #### Vulnerability #4 - Overexposed Container Networking and Service Ports
@@ -369,9 +394,10 @@ networks:
     
 volumes:
   postgres-data:
-  ```
+```
 
-<br>
+  
+
 
 **Hardened Code**
 
@@ -446,7 +472,8 @@ volumes:
   postgres-data:
 ```
 
-<br>
+  
+
 
 **Exploiting Vulnerability**
 
@@ -464,7 +491,8 @@ Part 5/5 - There is a single central network, flat network topology like this al
 
 This hardened code addresses Vulnerability #4 only (network segmentation and database port exposure). Vulnerability #5 and Vulnerability #6 are intentionally unchanged here and are remediated in their dedicated sections.
 
-<br>
+  
+
 
 The hardened Docker Compose file has multiple fixes for these issues.
 
@@ -474,7 +502,8 @@ Second, the frontend is assigned to `public-network`, backend to `public-network
 
 Lastly, the host db exposure is addressed by replacing `ports: "5432:5432"` with `expose: "5432"`. This allows the db to be accessed by internal app traffic, but not host or external paths. This resolves Part 3/5.
 
-<br>
+  
+
 
 #### Vulnerability #5 - Exposed Docker Socket
 
@@ -482,11 +511,13 @@ Lastly, the host db exposure is addressed by replacing `ports: "5432:5432"` with
 
 **Vulnerable Code**
 
-- Part 1/1: `PERN-app/vulnerable/docker-compose.yml` 
+- Part 1/1: `PERN-app/vulnerable/docker-compose.yml`
 
-<br>
+  
+
 
 PERN-app/vulnerable/docker-compose.yml
+
 ```yml
   backend:
     build:
@@ -504,7 +535,8 @@ PERN-app/vulnerable/docker-compose.yml
       - /usr/src/app/node_modules
 ```
 
-<br>
+  
+
 
 **Hardened Code**
 
@@ -524,17 +556,20 @@ PERN-app/vulnerable/docker-compose.yml
       - /usr/src/app/node_modules
 ```
 
-<br>
+  
+
 
 **Exploiting Vulnerability**
 
 In this vulnerable implementation, the container is given access to the Docker daemon with (`/var/run/docker.sock:/var/run/docker.sock`). If an attacker gains code execution in the backend container, access to the Docker socket can allow control over the host Docker daemon. If remote code execution happens an attacker can read secrets and effectively escalate to compromising the host.
 
-<br>
+  
+
 
 This hardened implementation removes the Docker socket bind mount entirely, because application containers should not control the host Docker daemon. Removing this mount prevents an attacker who compromises the backend from using Docker API to gain further access to the host/infrastructure.
 
-<br>
+  
+
 
 #### Vulnerability #6 - Hardcoded Secrets and Credentials
 
@@ -542,13 +577,15 @@ This hardened implementation removes the Docker socket bind mount entirely, beca
 
 **Vulnerable Code**
 
-- Part 1/4: `PERN-app/vulnerable/backend/src/index.ts`  
+- Part 1/4: `PERN-app/vulnerable/backend/src/index.ts`
+
 ```ts
 const JWT_SECRET =
   "this-is-a-secret-key-that-should-be-in-an-env-file-or-secret-manager";
 ```
 
 - Part 2/4: `PERN-app/vulnerable/backend/src/db.ts`
+
 ```ts
 const pool = new Pool({
   user: "user",
@@ -559,7 +596,8 @@ const pool = new Pool({
 });
 ```
 
-- Part 3/4: `PERN-app/vulnerable/docker-compose.yml`  
+- Part 3/4: `PERN-app/vulnerable/docker-compose.yml`
+
 ```yml
 POSTGRES_USER: user
 POSTGRES_PASSWORD: password
@@ -567,6 +605,7 @@ POSTGRES_DB: mydatabase
 ```
 
 - Part 4/4: `PERN-app/vulnerable/backend/src/data/users.ts`
+
 ```ts
 export const usersToSeed = [
   { username: "alice", password: "Gr@phQL$25" },
@@ -576,11 +615,13 @@ export const usersToSeed = [
 ];
 ```
 
-<br>
+  
+
 
 **Hardened Code**
 
 `PERN-app/hardened/.env.example`
+
 ```yml
 DB_USER=your_postgres_user
 DB_HOST=db
@@ -592,6 +633,7 @@ SEED_USER_PASSWORD=replace_with_a_strong_seed_password
 ```
 
 `PERN-app/hardened/backend/src/env.ts`
+
 ```ts
 const getRequiredEnv = (name: string): string => {
   const value = process.env[name];
@@ -614,11 +656,13 @@ export const env = {
 ```
 
 `PERN-app/hardened/backend/src/index.ts`
+
 ```ts
 const JWT_SECRET = env.jwtSecret;
 ```
 
 `PERN-app/hardened/backend/src/db.ts`
+
 ```ts
 const pool = new Pool({
   user: env.dbUser,
@@ -630,6 +674,7 @@ const pool = new Pool({
 ```
 
 `PERN-app/hardened/docker-compose.yml`
+
 ```yml
 env_file:
       - .env
@@ -640,6 +685,7 @@ POSTGRES_DB: ${DB_NAME}
 ```
 
 `PERN-app/hardened/backend/src/data/users.ts`
+
 ```ts
 export const usersToSeed = [
   { username: "alice" },
@@ -650,6 +696,7 @@ export const usersToSeed = [
 ```
 
 `PERN-app/hardened/backend/src/index.ts`
+
 ```ts
 const seedUserPassword = env.seedUserPassword;
 
@@ -663,8 +710,8 @@ for (const user of usersToSeed) {
 }
 ```
 
+  
 
-<br>
 
 **Exploiting Vulnerability**
 
@@ -676,7 +723,8 @@ These variables are then injected in the Docker Compose file and used in the cod
 
 While this works fine for local development, in a production app these environment variables would be injected by a secret manager at runtime. This would improve team workflows and security by avoiding storage of sensitive keys or credentials on local devices.
 
-<br>
+  
+
 
 #### Vulnerability #7 - Missing Auth/API Hardening Controls
 
@@ -685,6 +733,7 @@ While this works fine for local development, in a production app these environme
 **Vulnerable Code**
 
 - Part 1/3: `PERN-app/vulnerable/frontend/src/services/api.ts` (JWT persisted in `localStorage`)
+
 ```ts
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -709,6 +758,7 @@ export const signIn = async (credentials: Credentials) => {
 ```
 
 - Part 2/3: `PERN-app/vulnerable/backend/src/index.ts` (missing security headers)
+
 ```ts
 const app = express();
 app.use(cors(corsOptions));
@@ -716,6 +766,7 @@ app.use(express.json());
 ```
 
 - Part 3/3: `PERN-app/vulnerable/backend/src/index.ts` (`/signin` has no brute-force protection)
+
 ```ts
 app.post("/signin", async (req: Request, res: Response) => {
   const user = await userService.findUser(req.body);
@@ -734,11 +785,13 @@ app.post("/signin", async (req: Request, res: Response) => {
 });
 ```
 
-<br>
+  
+
 
 **Hardened Code**
 
 `PERN-app/hardened/backend/src/index.ts`
+
 ```ts
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -824,6 +877,7 @@ const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
 ```
 
 `PERN-app/hardened/frontend/src/services/api.ts`
+
 ```ts
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -855,6 +909,7 @@ export const signOut = async () => {
 ```
 
 `PERN-app/hardened/frontend/src/components/Header.tsx`
+
 ```ts
 import { getMainPageData, signOut } from "../services/api";
 
@@ -870,6 +925,7 @@ const handleSignOut = async () => {
 ```
 
 `PERN-app/hardened/backend/src/env.ts`
+
 ```ts
 export const env = {
   dbUser: getRequiredEnv("DB_USER"),
@@ -883,7 +939,8 @@ export const env = {
 };
 ```
 
-<br>
+  
+
 
 **Exploiting Vulnerability**
 
@@ -893,7 +950,8 @@ Part 2/3 - The backend is missing baseline browser-facing security headers. With
 
 Part 3/3 - The sign-in endpoint has no brute-force protection. Attackers can automate high-volume credential guessing and credential-stuffing attempts with no throttling barrier.
 
-<br>
+  
+
 
 The hardened implementation has multiple fixes for these issues.
 
@@ -905,14 +963,15 @@ Third, browser and authentication hardening controls were added to the backend. 
 
 Lastly, brute-force resistance was added on `/signin` with `express-rate-limit` (`signinLimiter`). This directly addresses Part 3/3. In addition, cookie security is environment-aware via `nodeEnv`, which keeps local development functional while preserving secure-cookie behavior in production and reinforces Part 1/3 protections.
 
-<br>
+  
+
 
 ### Flask App
 
 This is a sample web application built in Python with the Flask framework.
 Paths for this section: `flask-app/vulnerable` and `flask-app/hardened`.
 
-#### Vulnerability #1 - Command Injection 
+#### Vulnerability #1 - Command Injection
 
 ---
 
@@ -933,7 +992,6 @@ The ping function is commonly used in code to check if a server or device on a n
 
 Ex: `ping -c 1 localhost; ls`
 
-
 **Hardened Code**
 
 `flask-app/hardened/app.py`
@@ -951,6 +1009,7 @@ try:
 This code is hardened by the removal of the shell=True parameter. This makes it so characters like ; are not interpreted, which removes the ability of attackers to inject commands. Since the shell is not being used the command must be split up into a list.
 
 In a production-level app where many commands may need to run, a command whitelist may also be used.
+
 ```python
 if command_to_run not in ALLOWED_COMMANDS:
     return jsonify(error="Command not permitted"), 403
@@ -960,19 +1019,20 @@ if command_to_run not in ALLOWED_COMMANDS:
 
 Attackers can pass in a parameter which will run the ping command. Then add a special character like ; (encoded as %3B) followed by a malicious command. This allows attackers to run commands directly on the container's shell.
 
-* This will return the source code of the application.
+- This will return the source code of the application.
 
 `curl http://localhost:5000/api/ping?host=localhost%3Bcat%20app.py`
 
-* This will return the username that the web server process is using inside the container. This reveals the container is running as root, which is vulnerability #4.
+- This will return the username that the web server process is using inside the container. This reveals the container is running as root, which is vulnerability #4.
 
 `curl http://localhost:5000/api/ping?host=localhost%3B%20whoami`
 
-* This will return all ENV variables.
+- This will return all ENV variables.
 
 `curl http://localhost:5000/api/ping?host=localhost%3Benv`
 
-<br>
+  
+
 
 #### Vulnerability #2 - Out of Date and Floating Python Image
 
@@ -1011,7 +1071,8 @@ A few of the most severe CVEs include:
 [CVE-2023-4911](https://scout.docker.com/vulnerabilities/id/CVE-2023-4911?s=debian&n=glibc&ns=debian&t=deb&osn=debian&osv=12&vr=%3C2.36-9%2Bdeb12u3&utm_source=hub&utm_medium=ExternalLink&_gl=1*tipgt7*_ga*NTk0NzY2OTM3LjE3NTE5ODg0NjM.*_ga_XJWPQMJYHQ*czE3NTE5ODg0NjMkbzEkZzEkdDE3NTE5OTI4NjgkajU0JGwwJGgw)
 "A buffer overflow was discovered in the GNU C Library's dynamic loader ld.so while processing the GLIBC_TUNABLES environment variable. This issue could allow a local attacker to use maliciously crafted GLIBC_TUNABLES environment variables when launching binaries with SUID permission to execute code with elevated privileges."
 
-<br>
+  
+
 
 #### Vulnerability #3 - Secret Stored Directly in Dockerfile
 
@@ -1052,7 +1113,8 @@ my_secret = response.payload.data.decode("UTF-8")
 
 If a secret is stored directly in a project file, anyone with access to that file or the repository where it is stored can access that secret. In addition, the commands `docker history` and `docker inspect` can be used to access a secret that has been stored in an insecure manner. If an attacker gains shell access to a container they can use the `env` or `printenv` command to access all environment variables.
 
-<br>
+  
+
 
 #### Vulnerability #4 - Running Container as Root User
 
@@ -1103,4 +1165,4 @@ Attackers would also gain full access to read and overwrite application source c
 
 As the root user, the attacker would also be well positioned to exploit a kernel-level vulnerability or another Docker misconfiguration to attempt a container escape. If successful, the attacker would gain access to the host machine and all containers running on that machine.
 
-<br>
+  
