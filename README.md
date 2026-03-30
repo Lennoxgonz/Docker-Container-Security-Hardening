@@ -994,7 +994,7 @@ In addition, it is a floating tag. This means it is not pinned to one specific i
 
 `FROM python:3.13.5-slim-bookworm`
 
-This Python image is up to date and has no known vulnerabilities. It is also very specific, or pinned. This ensures that the image stays exactly the same on subsequent rebuilds to ensure no unexpected issues are introduced by using a slightly different image version.
+This Python image is up to date and pinned to a specific version, which improves reproducibility and reduces exposure to known issues compared with older or floating tags. Pinning ensures rebuilds stay consistent and helps prevent unexpected changes from newly published image variants.
 
 **Exploiting Vulnerability**
 

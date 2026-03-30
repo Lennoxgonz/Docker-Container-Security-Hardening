@@ -2,8 +2,8 @@
 # The original vulnerable code was:
 # FROM python:3.7
 
-# This is an updated version with no known vulnerabilities. It is also a pinned
-# version to ensure the image stays the same on subsequent rebuilds
+# This is an updated and pinned version to improve reproducibility and reduce
+# exposure to known issues compared with older or floating image tags.
 FROM python:3.13.5-slim-bookworm
 
 WORKDIR /app
