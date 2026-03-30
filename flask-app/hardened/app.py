@@ -1,5 +1,4 @@
 import subprocess
-import shlex
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
@@ -25,10 +24,8 @@ def lookup():
         )
     '''
     
-    # The input is passed into shlex.quote() which will escape special characters as a best practice
-    # In addition the command is now a list of arguments since it will not be run in shell
-    safe_host = shlex.quote(host)
-    command_list = ['ping', '-c', '1', safe_host]
+    # The command is now a fixed argv list and is not run in a shell
+    command_list = ['ping', '-c', '1', host]
 
     try:
         # The command list is passed in, and 'shell=True' is removed

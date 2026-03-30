@@ -129,8 +129,10 @@ export const findUser = async (credentials: AuthCredentialsDto) => {
 
 `PERN-app/hardened/backend/src/index.ts`
 ```ts
+const seedUserPassword = env.seedUserPassword;
+
 for (const user of usersToSeed) {
-  const hashedPassword = await bcrypt.hash(user.password, SALT_ROUNDS);
+  const hashedPassword = await bcrypt.hash(seedUserPassword, SALT_ROUNDS);
   const seedQuery = {
     text: `INSERT INTO users (username, password) VALUES ($1, $2) ON CONFLICT (username) DO NOTHING`,
     values: [user.username, hashedPassword],
@@ -741,9 +743,13 @@ app.post("/signin", async (req: Request, res: Response) => {
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
+import { parseSigninPayload } from "./types/dto";
 
 app.use(helmet());
 app.use(cookieParser());
+
+const AUTH_COOKIE_NAME = "auth_token";
+const isProduction = env.nodeEnv === "production";
 
 const signinLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -753,48 +759,67 @@ const signinLimiter = rateLimit({
 });
 
 app.post("/signin", signinLimiter, async (req: Request, res: Response) => {
-  const user = await userService.findUser(req.body);
-  if (!user) {
-    return res.status(401).json({ message: "Invalid credentials" });
+  const signinPayload = parseSigninPayload(req.body);
+  if (!signinPayload) {
+    return res.status(400).json({ message: "Invalid credentials payload" });
   }
 
-  const payload = { id: user.id, username: user.username };
-  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
-
-  res.cookie("auth_token", token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "strict",
-    maxAge: 60 * 60 * 1000,
-  });
-
-  return res.status(200).json({
-    message: "Sign in successful",
-    user: { id: user.id, username: user.username },
-  });
+  try {
+    const user = await userService.findUser(signinPayload);
+    if (user) {
+      const payload = { id: user.id, username: user.username };
+      const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1h" });
+      res.cookie(AUTH_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: isProduction,
+        sameSite: "strict",
+        maxAge: 60 * 60 * 1000,
+      });
+      res.status(200).json({
+        message: "Sign in successful",
+        user: { id: user.id, username: user.username },
+      });
+    } else {
+      res.status(401).json({ message: "Invalid credentials" });
+    }
+  } catch {
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 app.post("/signout", (_req: Request, res: Response) => {
-  res.clearCookie("auth_token", {
+  res.clearCookie(AUTH_COOKIE_NAME, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isProduction,
     sameSite: "strict",
   });
-  return res.status(200).json({ message: "Sign out successful" });
+  res.status(200).json({ message: "Sign out successful" });
 });
 
 const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
-  const token = req.cookies?.auth_token;
-  if (!token) {
+  const token = req.cookies?.[AUTH_COOKIE_NAME];
+
+  if (token == null) {
     return res.status(401).json({ message: "Authentication token required" });
   }
-  jwt.verify(token, JWT_SECRET, (err, user) => {
+
+  jwt.verify(
+    token,
+    JWT_SECRET,
+    (err: jwt.VerifyErrors | null, user: string | JwtPayload | undefined) => {
     if (err) {
       return res.status(403).json({ message: "Invalid or expired token" });
     }
-    req.user = user as { id: number; username: string };
-    next();
-  });
+
+      const verifiedUser = user as JwtPayload & { id?: number; username?: string };
+      if (typeof verifiedUser.id !== "number" || typeof verifiedUser.username !== "string") {
+        return res.status(403).json({ message: "Invalid token payload" });
+      }
+
+      req.user = { id: verifiedUser.id, username: verifiedUser.username };
+      next();
+    }
+  );
 };
 ```
 
@@ -914,25 +939,21 @@ Ex: `ping -c 1 localhost; ls`
 `flask-app/hardened/app.py`
 
 ```python
-safe_host = shlex.quote(host)
-command_list = ['ping', '-c', '1', safe_host]
+command_list = ['ping', '-c', '1', host]
 
-    try:
-        # The command is passed as a list, and 'shell=True' is removed
-
-        result = subprocess.run(
-            command_list, capture_output=True, text=True, timeout=10
-        )
+try:
+    # The command list is passed in, and 'shell=True' is removed
+    result = subprocess.run(
+        command_list, capture_output=True, text=True, timeout=10
+    )
 ```
 
 This code is hardened by the removal of the shell=True parameter. This makes it so characters like ; are not interpreted, which removes the ability of attackers to inject commands. Since the shell is not being used the command must be split up into a list.
 
-In addition, the user input is passed into shlex.quote() which will escape special characters/instructions like -f by wrapping the input in quotes. This is done as a best practice.
-
 In a production-level app where many commands may need to run, a command whitelist may also be used.
 ```python
 if command_to_run not in ALLOWED_COMMANDS:
-        return jsonify(error="Command not permitted"), 403
+    return jsonify(error="Command not permitted"), 403
 ```
 
 **Exploiting Vulnerability**
